@@ -80,6 +80,15 @@ Follow these steps to quickly set up and run the Image Caption Generator:
 - Detailed logging with customizable log levels via environment variables.
 - Highly configurable through environment variables and command-line arguments.
 
+## Dependencies
+
+The following dependencies are required to run the project. They are specified in `requirements.txt`:
+
+- openai
+- python-dotenv
+- requests
+- pytest
+
 ## Prerequisites
 
 - Python 3.x
@@ -224,13 +233,37 @@ Logs are formatted to include timestamps, thread names, and log levels for bette
 
 ## Testing
 
-To ensure the functionality of the Image Caption Generator, run the tests using `pytest`:
+To ensure the functionality of the Image Caption Generator, follow these steps to run the tests using `pytest`:
 
-```bash
-pytest
-```
+1. **Activate the virtual environment:**
+
+   ```bash
+   source venv/bin/activate
+   ```
+
+2. **Run the tests:**
+
+   ```bash
+   pytest
+   ```
+
+3. **Deactivate the virtual environment:**
+
+   ```bash
+   deactivate
+   ```
 
 This will execute all test cases and verify that the code is working as expected.
+
+## FAQ
+
+### Why am I getting an API key error?
+
+Ensure that your `OPENAI_API_KEY` is correctly set in your environment variables or in the `.env` file.
+
+### How do I set up the environment?
+
+Follow the instructions in the [Installation](#installation) section to set up your environment correctly.
 
 ## Troubleshooting
 
