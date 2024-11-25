@@ -1,10 +1,10 @@
-# gen-captions.py
-
-Caption Generator v1.0.5 - Generate detailed and accurate captions for images using OpenAI.
+# Image Caption Generator
+_v1.0.5_
+**Generate detailed and accurate captions for images using OpenAI.**
 
 ## Overview
 
-`gen-captions.py` is a Python script designed to generate descriptive captions for images in a specified directory. Originally intended to support the creation of training sets for the [AI-Toolkit](https://github.com/yourusername/ai-toolkit) GitHub project, it has evolved into a versatile and reusable tool suitable for various image captioning tasks.
+`gen-captions.py` is a Python script designed to generate descriptive captions for images in a specified directory. Originally intended to support the creation of training sets for the[ [AI-Toolkit](https://github.com/yourusername/ai-toolkit)](https://github.com/ostris/ai-toolkit.git)  GitHub project, it has evolved into a versatile and reusable tool suitable for various image captioning tasks.
 
 ## Table of Contents
 
@@ -151,7 +151,7 @@ Contributions are welcome! Please fork the repository and submit a pull request 
 
 ## License
 
-[Specify the license under which the project is distributed.]
+MIT
 
 ## Contact
 
