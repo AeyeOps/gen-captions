@@ -17,7 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 - Resolved issues with API rate limiting by implementing exponential backoff.
 
-## [1.0.5] - 2023-10-XX
+## [1.0.5] - 2024-11-24
 ### Added
 - Added support for asynchronous image processing with a thread pool.
 - Introduced command-line interface for easier configuration and execution.
@@ -29,6 +29,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 - Fixed encoding issues in text files and improved compatibility with different encodings.
 
-## [1.0.0] - 2023-09-XX
+## [1.0.0] - 2024-10-05
 ### Added
 - Initial release with basic image caption generation functionality.
