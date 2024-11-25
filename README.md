@@ -4,7 +4,7 @@ _v1.0.5_
 
 ## Overview
 
-`gen-captions.py` is a Python script designed to generate descriptive captions for images in a specified directory. Originally intended to support the creation of training sets for the[ [AI-Toolkit](https://github.com/yourusername/ai-toolkit)](https://github.com/ostris/ai-toolkit.git)  GitHub project, it has evolved into a versatile and reusable tool suitable for various image captioning tasks.
+`gen-captions.py` is a Python script that uses OpenAI's API to generate descriptive captions for images in a specified directory. It also includes functionality to fix encoding issues in text files. Originally intended to support the creation of training sets for the [AI-Toolkit](https://github.com/yourusername/ai-toolkit) GitHub project, it has evolved into a versatile and reusable tool suitable for various image captioning tasks.
 
 ## Table of Contents
 
@@ -29,12 +29,12 @@ _v1.0.5_
 
 ## Features
 
-- Generate detailed captions suitable for use as prompts in image generation models like Stable Diffusion.
-- Asynchronous processing with configurable thread pooling.
+- Generate detailed captions using OpenAI's API, suitable for use as prompts in image generation models like Stable Diffusion.
+- Asynchronous processing of images with configurable thread pooling.
 - Automatic handling of API rate limiting with exponential backoff retries.
-- Option to fix encoding issues in existing text and configuration files.
-- Detailed logging with customizable log levels.
-- Highly configurable via environment variables and command-line arguments.
+- Fix encoding issues in existing text and configuration files.
+- Detailed logging with customizable log levels via environment variables.
+- Highly configurable through environment variables and command-line arguments.
 
 ## Prerequisites
 
@@ -62,8 +62,12 @@ _v1.0.5_
    Create a `.env` file in the project root or set the variables in your environment.
 
    ```properties
-   // filepath: /e:/dev/lora-train/.env
-   // ...existing code...
+   OPENAI_API_KEY=your_openai_api_key
+   GETCAP_THREAD_POOL=50
+   GETCAP_THROTTLE_SUBMISSION_RATE=10
+   GETCAP_THROTTLE_RETRIES=100
+   GETCAP_THROTTLE_BACKOFF_FACTOR=2
+   GETCAP_LOG_LEVEL=INFO
    ```
 
 ## Usage
@@ -95,6 +99,18 @@ python gen-captions.py --image-dir ./images --caption-dir ./captions --config-di
 python gen-captions.py --fix-encoding --caption-dir ./captions --config-dir ./config
 ```
 
+**Generate captions for images:**
+
+```bash
+python gen-captions.py --image-dir ./images --caption-dir ./captions --config-dir ./config
+```
+
+**Fix encoding issues in text and configuration files:**
+
+```bash
+python gen-captions.py --fix-encoding --caption-dir ./captions --config-dir ./config
+```
+
 ## Configuration
 
 Customize the script behavior using environment variables in the `.env` file or directly in your shell.
@@ -111,8 +127,12 @@ Customize the script behavior using environment variables in the `.env` file or 
 ### Sample `.env` File
 
 ```properties
-// filepath: /e:/dev/lora-train/.env
-// ...existing code...
+OPENAI_API_KEY=your_openai_api_key
+GETCAP_THREAD_POOL=50
+GETCAP_THROTTLE_SUBMISSION_RATE=10
+GETCAP_THROTTLE_RETRIES=100
+GETCAP_THROTTLE_BACKOFF_FACTOR=2
+GETCAP_LOG_LEVEL=INFO
 ```
 
 ## Diagram
@@ -144,6 +164,10 @@ Logs are formatted to include timestamps, thread names, and log levels for bette
 - Implements exponential backoff when encountering rate limiting from the OpenAI API.
 - Catches and logs exceptions during image processing without halting the entire script.
 - Provides detailed error messages to assist in debugging.
+
+## System Information
+
+The script logs system information and environment variable settings using the `print_system_info` function, which helps in diagnosing issues related to the execution environment.
 
 ## Contributing
 
