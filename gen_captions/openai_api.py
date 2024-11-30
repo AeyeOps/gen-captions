@@ -34,7 +34,7 @@ def generate_description(image_path):
                                 "type": "text",
                                 "text": """
                                     Describe the content of this image as a detailed and accurate caption for a stable
-                                    diffusion model prompt and use [trigger] to identify the primary woman subject. Refer to her as [trigger], a woman.
+                                    diffusion model prompt and use [trigger] to identify the primary subject. Refer to them as  [trigger], specifying man or woman.
                                     As early as possible in the prompt for the first time.
                                     Do not capitalize the name regardless of where you place it in the sentence it should always be lowercase [trigger].
                                     Feel free to reference her multiple times in the caption if necessary.
