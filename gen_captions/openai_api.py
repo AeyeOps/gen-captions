@@ -34,10 +34,10 @@ def generate_description(image_path):
                                 "type": "text",
                                 "text": """
                                     Describe the content of this image as a detailed and accurate caption for a stable
-                                    diffusion model prompt and use [trigger] to identify the primary subject. Refer to them as  [trigger], specifying man or woman.
-                                    As early as possible in the prompt for the first time.
-                                    Do not capitalize the name regardless of where you place it in the sentence it should always be lowercase [trigger].
-                                    Feel free to reference her multiple times in the caption if necessary.
+                                    diffusion model prompt and use [trigger] to identify the primary subject. 
+                                    You must refer to them by name as trigger], specifying man or woman. Do this as early as possible in the prompt for 
+                                    the first time. Do not capitalize the name regardless of where you place it in the sentence it should always be 
+                                    lowercase [trigger]. Feel free to reference [trigger] multiple times in the caption if necessary.
                                     The caption should be concise and accurate, and should not contain any irrelevant information. Avoid all words with
                                     single quotes, double quotes, or any other special characters.
                                     """,

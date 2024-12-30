@@ -6,7 +6,7 @@ from .logger_config import logger
 
 def print_system_info():
     """Print system information and environment variable settings."""
-    print("\r\n" * 2)
+    logger.info("\r\n" * 2)
     logger.info("System Information:")
     logger.info(f"Platform: {platform.system()}")
     logger.info(f"Platform Version: {platform.version()}")
@@ -19,4 +19,4 @@ def print_system_info():
     for key, value in os.environ.items():
         if key.startswith("GETCAP_"):
             logger.info(f"{key}: {value}")
-    print("\r\n" * 2)
+    logger.info("\r\n" * 2)

@@ -40,9 +40,12 @@ def process_images(image_directory, caption_directory):
                         filename = f[2]
                         break
                 if description:
-                    with open(txt_path, "w", encoding="utf-8") as txt_file:
-                        txt_file.write(description)
-                    logger.info(f"Processed: {filename}")
+                    if "[trigger]" in description:
+                        with open(txt_path, "w", encoding="utf-8") as txt_file:
+                            txt_file.write(description)
+                        logger.info(f"Processed: {filename}")
+                    else:
+                        logger.info(f"Rejected content for: {filename}. No [trigger] found.")
             except Exception as e:
                 logger.error(f"Error processing image: {e}")
     logger.info("Finished processing images.")

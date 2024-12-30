@@ -1,7 +1,6 @@
 # gen_captions/constants.py
 
 import os
-import logging
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -12,8 +11,6 @@ for env in envs:
             dotenv_path=env,
             override=True,
             verbose=True)
-    else:
-        logging.warning(f"Environment file {env} not found.")
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 THREAD_POOL = int(os.getenv("GETCAP_THREAD_POOL", 10))

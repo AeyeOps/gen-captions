@@ -164,6 +164,5 @@ cython_debug/
 .env.aider.consolidated.tmp
 .env.aider.local
 .env.local
-.vscode/settings.json
 .env.aider.template
-.vscode/launch.json
+
