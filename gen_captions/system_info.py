@@ -4,6 +4,7 @@ import platform
 import os
 from .logger_config import logger
 
+
 def print_system_info():
     """Print system information and environment variable settings."""
     logger.info("\r\n" * 2)

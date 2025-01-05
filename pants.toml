@@ -1,0 +1,63 @@
+[GLOBAL]
+pantsd = true
+level = "info"
+
+backend_packages = [
+  "pants.backend.python", 
+  "pants.backend.python.lint.black",
+  "pants.backend.python.lint.flake8",
+  "pants.backend.python.lint.isort",    
+  "pants.backend.python.lint.pylint",
+  "pants.backend.python.lint.pydocstyle",
+  "pants.backend.python.lint.bandit",
+  "pants.backend.python.lint.docformatter",
+  "pants.backend.python.lint.autoflake",
+  "pants.backend.python.lint.pyupgrade",
+  "pants.backend.python.typecheck.mypy",
+  "pants.backend.build_files.fmt.black",
+  "pants.backend.shell",
+  "pants.backend.shell.lint.shfmt",
+  "pants.backend.shell.lint.shellcheck",
+  "pants.backend.tools.preamble",
+  "pants.backend.tools.taplo",
+  "pants.backend.experimental.openapi",
+  "pants.backend.experimental.openapi.lint.openapi_format",
+  "pants.backend.experimental.python",
+  "pants.backend.experimental.python.typecheck.pytype",
+  "pants.backend.experimental.tools.semgrep",
+  "pants.backend.experimental.tools.yamllint",
+  "pants.backend.experimental.visibility",
+]
+pants_version = "2.23.1"
+
+[anonymous-telemetry]
+enabled = false
+
+[python]
+interpreter_constraints = [">=3.11"]
+
+[python.resolves]
+python-default = "gen_captions/lockfile.lock"
+
+[source]
+root_patterns = ["/"]
+
+
+[black]
+args = ["--line-length=88"]
+
+[isort]
+
+
+[pytest]
+
+[tailor]
+ignore_paths = ["*", ""]
+
+[python-infer]
+unowned_dependency_behavior = "ignore"
+string_imports = true
+string_imports_min_dots = 2
+
+
+

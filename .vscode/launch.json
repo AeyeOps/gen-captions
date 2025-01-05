@@ -10,13 +10,13 @@
             "request": "launch",
             "module": "gen_captions.cli",
             "args": [
-                "--fix-encoding",
+                "generate",
                 "--image-dir",
-                "../images/demi-lora/",
+                "/opt/images/aya2-lora/",
                 "--caption-dir",
-                "../images/demi-lora/",
-                "--config-dir",
-                "../ai-toolkit/config/"
+                "../images/aya2-lora/",
+                "--llm-backend",
+                "grok"
             ],
             "env": {
                 "PYTHONPATH": "gen_captions"

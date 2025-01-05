@@ -1,32 +1,6 @@
-
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.hatch.version]
-path = "gen_captions/__version__.py"
-
-[tool.black]
-line-length = 88
-target-version = ['py311', 'py312']
-
-[tool.hatch.build]
-include = [
-  "gen_captions/**",
-  "tests/**",
-  "pyproject.toml",
-  "README.md",
-  "LICENSE",
-  "CONTRIBUTING.md",
-  "CHANGELOG.md"
-]
-
-[tool.isort]
-profile = "black"
-
 [project]
 name = "gen-captions"
-dynamic = ["version"]
+version = "0.2.2"  # you can pin this here if you like, or keep it dynamic
 description = "Gen-Captions Image caption generation tool"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -38,7 +12,9 @@ dependencies = [
     "requests",
     "pytest",
     "black",
-    "isort"
+    "isort",
+    "typer",
+    "rich"
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -57,3 +33,9 @@ Homepage = "https://github.com/steveant/gen-captions"
 Issues = "https://github.com/steveant/gen-captions/issues"
 Documentation = "https://github.com/steveant/gen-captions/tree/main/README.md"
 
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.isort]
+profile = "black"

@@ -5,14 +5,17 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
 from .logger_config import logger
-from .constants import THREAD_POOL, THROTTLE_SUBMISSION_RATE
+from . import config
 from .utils import prompt_exists
-from .openai_api import generate_description
+from .llm_client import get_llm_client
 
-def process_images(image_directory, caption_directory):
+
+def process_images(image_directory, caption_directory, backend):
     """Process images in the directory and generate descriptions asynchronously."""
-    logger.info("Starting to process images...")
-    with ThreadPoolExecutor(max_workers=THREAD_POOL) as executor:
+    logger.info(f"Starting to process images with LLM backend: {backend}")
+    llm_client = get_llm_client(backend)
+
+    with ThreadPoolExecutor(max_workers=config.THREAD_POOL) as executor:
         futures = []
         for filename in os.listdir(image_directory):
             if filename.lower().endswith((".jpg", ".jpeg", ".png")):
@@ -22,30 +25,37 @@ def process_images(image_directory, caption_directory):
                 if not prompt_exists(txt_path):
                     image_path = os.path.join(image_directory, filename)
                     logger.info(f"Submitting {filename} for processing...")
-                    future = executor.submit(partial(generate_description, image_path))
+                    future = executor.submit(
+                        partial(llm_client.generate_description, image_path)
+                    )
                     futures.append((future, txt_path, filename))
-                    time.sleep(1 / THROTTLE_SUBMISSION_RATE)  # Add delay between task submissions
+                    time.sleep(1 / config.THROTTLE_SUBMISSION_RATE)
                 else:
                     logger.info(f"Skipping: {filename}. Prompt already exists.")
 
-        # Use as_completed to handle futures as they complete
         for future in as_completed([f[0] for f in futures]):
             try:
                 description = future.result()
-                # Find the corresponding txt_path and filename
-                description = description.encode('utf-8', 'ignore').decode('utf-8')
+                # Convert to UTF-8 in case of special char issues
+                description = description.encode("utf-8", "ignore").decode("utf-8")
                 for f in futures:
                     if f[0] == future:
                         txt_path = f[1]
                         filename = f[2]
                         break
-                if description:
-                    if "[trigger]" in description:
-                        with open(txt_path, "w", encoding="utf-8") as txt_file:
-                            txt_file.write(description)
-                        logger.info(f"Processed: {filename}")
-                    else:
-                        logger.info(f"Rejected content for: {filename}. No [trigger] found.")
+                if description and "[trigger]" in description:
+                    with open(txt_path, "w", encoding="utf-8") as txt_file:
+                        txt_file.write(description)
+                    logger.info(f"Processed: {filename}")
+                elif description:
+                    logger.info(
+                        f"Rejected content for: {filename}. No [trigger] found. Prompt: {description}"
+                    )
+                else:
+                    logger.info(
+                        f"Rejected content for: {filename}. No description generated."
+                    )
             except Exception as e:
-                logger.error(f"Error processing image: {e}")
+                logger.error(f"Error processing image: {e}", exc_info=True)
+
     logger.info("Finished processing images.")

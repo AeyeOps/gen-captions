@@ -1,46 +1,109 @@
-# gen_captions/cli.py
-
-import sys
 import os
-import argparse
+import typer
+from rich.console import Console
+from dotenv import dotenv_values
+from pathlib import Path
+
+from . import config
 from .logger_config import logger
 from .system_info import print_system_info
-from .constants import OPENAI_API_KEY
 from .encoding_fixer import fix_encoding_issues
 from .image_processor import process_images
 
-def config_arg_parser():
-    parser = argparse.ArgumentParser(
-        description="Caption Generator v1.0.5 - Generate image captions for all images in a folder using OpenAI.")
-    parser.add_argument("--fix-encoding", action="store_true", help="Fix encoding issues in text files.")
-    parser.add_argument("--image-dir", help="Image directory.", required='--fix-encoding' not in sys.argv)
-    parser.add_argument("--caption-dir", help="Captions directory for generated text.", required=True)
-    parser.add_argument("--config-dir", help="AI toolkit configuration folder.", required=True)
-    return parser
+console = Console()
 
-def main():
-    parser = config_arg_parser()
-    print("\r\n" * 1)
-    print(parser.description)
-    print("\r\n" * 1)
-    args = parser.parse_args()
-    print("\r\n" * 2)
+
+app = typer.Typer(
+    help="Caption Generator v1.0.5 - Generate image captions with OpenAI or GROK.",
+)
+
+
+@app.command(help="Generate an environment file.")
+def gen_env():
+    """
+    Generate a .env-like file with environment variables used in this codebase.
+    If .env exists, create .env1, if that exists, create .env2, and so on.
+    Populate with values from any existing .env if present, or use defaults.
+    """
+    # Ordered list of environment variables (existing defaults + discovered)
+    env_keys = [
+        "OPENAI_API_KEY",
+        "OPENAI_MODEL",
+        "OPENAI_BASE_URL",
+        "GROK_API_KEY",
+        "GROK_MODEL",
+        "GROK_BASE_URL",
+        "GETCAP_THREAD_POOL",
+        "GETCAP_THROTTLE_SUBMISSION_RATE",
+        "GETCAP_THROTTLE_RETRIES",
+        "GETCAP_THROTTLE_BACKOFF_FACTOR",
+        "GETCAP_LOG_LEVEL",
+    ]
+
+    existing = {}
+    base_env_file = Path(".env")
+    if base_env_file.exists():
+        existing = dotenv_values(dotenv_path=str(base_env_file))
+
+    # Find a new file name that doesn't overwrite anything
+    counter = 0
+    new_file = Path(".env")
+    while new_file.exists():
+        counter += 1
+        new_file = Path(f".env{counter}")
+
+    # Write to the new file
+    with new_file.open("w") as f:
+        for key in env_keys:
+            # Use existing value if present; else fallback to a placeholder or default
+            f.write(f"{key}={existing.get(key, '')}\n")
+
+    print(f"Created {new_file} with collected environment variables.")
+
+
+@app.command(help="Fix encoding issues in text files.")
+def fix_encoding(
+    caption_dir: str = typer.Option(..., help="Captions directory for generated text."),
+    config_dir: str = typer.Option(..., help="AI toolkit configuration folder."),
+):
+    """
+    Fix encoding issues in text files.
+    """
+    caption_directory = os.path.abspath(caption_dir) if caption_dir else None
+    config_directory = os.path.abspath(config_dir) if config_dir else None
+
     print_system_info()
-    print("\r\n" * 2)
+    console.print()
+    fix_encoding_issues(caption_dir=caption_directory, config_dir=config_directory)
 
-    # Get the full path of the image directory
-    image_directory = os.path.abspath(args.image_dir) if args.image_dir else None
-    caption_directory = os.path.abspath(args.caption_dir) if args.caption_dir else None
-    config_directory = os.path.abspath(args.config_dir) if args.config_dir else None
 
-    if args.fix_encoding:
-        logger.info("Fixing encoding issues in text files...")
-        fix_encoding_issues(caption_directory, config_directory)
-        logger.info("Finished fixing encoding issues.")
-    elif not OPENAI_API_KEY:
-        logger.error("OPENAI_API_KEY is not set in the environment.")
+@app.command(help="Generate image captions with OpenAI or GROK.")
+def generate(
+    image_dir: str = typer.Option(..., help="Image directory."),
+    caption_dir: str = typer.Option(..., help="Captions directory for generated text."),
+    llm_backend: str = typer.Option(..., help="Choose LLM backend: openai or grok."),
+):
+    print_system_info()
+    console.print()
+
+    image_directory = os.path.abspath(image_dir) if image_dir else None
+    caption_directory = os.path.abspath(caption_dir) if caption_dir else None
+
+    if llm_backend not in ["openai", "grok"]:
+        logger.error("Error: --llm-backend must be either 'openai' or 'grok'.")
+        raise typer.Exit(code=1)
+    config.set_backend(llm_backend)
+
+    if not config.LLM_API_KEY:
+        logger.error("LLM_API_KEY is not set in the environment")
     else:
-        process_images(image_directory, caption_directory)
+        if not image_directory:
+            logger.error("Error: --image-dir is required if not using --fix-encoding.")
+            raise typer.Exit(code=1)
+
+        # Pass the chosen backend to the process_images function
+        process_images(image_directory, caption_directory, backend=llm_backend)
+
 
 if __name__ == "__main__":
-    main()
+    app()
