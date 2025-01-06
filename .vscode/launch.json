@@ -10,13 +10,12 @@
             "request": "launch",
             "module": "gen_captions.cli",
             "args": [
-                "generate",
                 "--image-dir",
-                "/opt/images/aya2-lora/",
+                "/opt/images/morena-lora/",
                 "--caption-dir",
-                "../images/aya2-lora/",
-                "--llm-backend",
-                "grok"
+                "../images/morena-lora/",
+                "--config-dir",
+                "../ai-toolkit/config/"
             ],
             "env": {
                 "PYTHONPATH": "gen_captions"

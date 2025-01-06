@@ -8,6 +8,9 @@
 		},
 		{
 			"path": "../ai-toolkit/config"
+		},
+		{
+			"path": "../../home/steve/.cache/pants/lmdb_store"
 		}
 	],
 	"settings": {}

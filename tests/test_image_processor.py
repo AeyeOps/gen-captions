@@ -2,7 +2,9 @@
 
 import os
 import tempfile
+
 from gen_captions.image_processor import process_images
+
 
 def test_process_images_empty_dir():
     with tempfile.TemporaryDirectory() as image_dir, tempfile.TemporaryDirectory() as caption_dir:

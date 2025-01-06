@@ -1,31 +1,39 @@
-# gen_captions/llm_client.py
+"""Factory method to get an LLM client based on the backend argument.
 
+To elaborate on the above code snippet, the get_llm_client function is a
+factory method that returns an LLM client based on the backend argument.
+The backend argument specifies the type of LLM (Language Model) backend
+to use, such as "openai" or "grok".
+"""
+
+from logging import Logger
+
+from rich.console import Console
+
+from .config import Config
 from .openai_generic_client import OpenAIGenericClient
-from .logger_config import logger
-from . import config
 
 
-def get_llm_client(backend: str):
-    """Factory method to get an LLM client based on the backend argument."""
+def get_llm_client(
+    backend: str, config: Config, console: Console, logger: Logger
+):
+    """Get an LLM client based on the backend argument.
+
+    Depending on the backend param, it returns the corresponding LLM
+    client.
+    """
     backend = backend.lower().strip()
     config.set_backend(backend)
-    logger.info(
-        f"""
-Backend: {backend}
-LLM_MODEL: {config.LLM_MODEL}
-LLM_API_KEY: {config.LLM_API_KEY[:6]}...
-LLM_BASE_URL: {config.LLM_BASE_URL}
-"""
+    msg = (
+        f"Backend: {backend}\nLLM_MODEL: {config.LLM_MODEL}\nLLM_API_KEY: "
+        f"{config.LLM_API_KEY[:6]}...\nLLM_BASE_URL: {config.LLM_BASE_URL}"
     )
+    logger.info(msg)
 
-    if backend == "openai":
-        logger.info("Using OpenAI Generic backend for OpenAI.")
-        return OpenAIGenericClient()
-    elif backend == "grok":
-        logger.info("Using OpenAI Generic backend for GROK.")
-        return OpenAIGenericClient()
-    else:
-        logger.warning(
-            f"Unknown backend '{backend}' specified; defaulting to OpenAI Generic."
+    if backend in ("openai", "grok"):
+        logger.info("Using OpenAI Generic backend for %s.", backend)
+        return OpenAIGenericClient(
+            config=config, console=console, logger=logger
         )
-        return OpenAIGenericClient()
+
+    raise ValueError(f"Unknown backend '{backend}' specified.")

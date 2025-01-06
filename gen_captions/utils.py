@@ -1,7 +1,11 @@
-# gen_captions/utils.py
+"""A module that contains utility functions for the gen_captions package.
 
-import os
+This module contains utility functions that are used by the
+gen_captions.
+"""
+
 import base64
+import os
 
 
 def prompt_exists(text_file):

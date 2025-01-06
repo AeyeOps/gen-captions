@@ -1,6 +1,10 @@
 # tests/test_constants.py
 
-from gen_captions import config
+from gen_captions.config import Config
+
+config = Config()
+config.set_backend("openai")
+
 
 def test_constants():
     assert isinstance(config.THREAD_POOL, int)

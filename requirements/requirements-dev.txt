@@ -1,0 +1,10 @@
+pytest
+pytest-cov
+flake8
+black
+mypy
+isort
+tox
+urllib3
+types-requests
+pytype

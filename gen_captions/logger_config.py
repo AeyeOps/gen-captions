@@ -1,56 +1,51 @@
-# gen_captions/logger_config.py
+"""A module to configure the logger for the gen_captions package.
 
+This module contains a class that configures the logger for the
+gen_captions.
+"""
 import logging
 from logging.handlers import RotatingFileHandler
+from typing import Optional
+
+from rich.console import Console
 from rich.logging import RichHandler
-from .config import LOG_LEVEL
 
-# Create a logger for the gen_captions package
-logger = logging.getLogger("gen_captions")
-logger.setLevel(LOG_LEVEL)
+from .config import Config
 
-# Common formatter for file logging
-formatter = logging.Formatter(
-    "%(asctime)s [%(threadName)s] [%(levelname)s] %(message)s"
-)
 
-# Create a RichHandler for console output
-rich_handler = RichHandler(show_path=False)
-rich_handler.setLevel(LOG_LEVEL)
-# By default, RichHandler uses its own stylized format, but we can still attach a formatter if needed:
-# rich_handler.setFormatter(formatter)
+class CustomLogger:
+    """A class to configure the logger for the gen_captions package."""
 
-# Create a rotating file handler to preserve logs
-file_handler = RotatingFileHandler(
-    "gen_captions.log", mode="a", maxBytes=10_485_760, backupCount=5
-)
-file_handler.setLevel(LOG_LEVEL)
-file_handler.setFormatter(formatter)
+    def __init__(
+        self,
+        config: Config,
+        name=__name__,
+        console: Optional[Console] = None,
+    ):
+        """Initialize the logger configuration."""
+        self._console = console
+        self._config = config
+        self._logger = logging.getLogger(name)
+        self._logger.setLevel(config.LOG_LEVEL)
 
-# Replace any existing handlers
-logger.handlers = []
-logger.addHandler(rich_handler)
-logger.addHandler(file_handler)
+        formatter = logging.Formatter(
+            "%(asctime)s [%(threadName)s] [%(levelname)s] %(message)s"
+        )
 
-# import logging
-# from logging.handlers import RotatingFileHandler
-# from .constants import LOG_LEVEL
+        file_handler = RotatingFileHandler(
+            "gen_captions.log",
+            mode="a",
+            maxBytes=10 * 1024 * 1024,
+            backupCount=5,
+        )
+        file_handler.setFormatter(formatter)
+        self._logger.addHandler(file_handler)
 
-# # Configure logging
-# logging.basicConfig(
-#     format="%(asctime)s [%(threadName)s] [%(levelname)s] %(message)s",
-#     level=LOG_LEVEL,
-# )
-# logger = logging.getLogger(__name__)
-# logger.setLevel(LOG_LEVEL)
+        if self._console:
+            console_handler = RichHandler(console=self._console)
+            console_handler.setFormatter(formatter)
+            self._logger.addHandler(console_handler)
 
-# formatter = logging.Formatter("%(asctime)s [%(threadName)s] [%(levelname)s] %(message)s")
-
-# console_handler = logging.StreamHandler()
-# console_handler.setFormatter(formatter)
-
-# file_handler = RotatingFileHandler("gen_captions.log", mode="a", maxBytes=10485760, backupCount=5)
-# file_handler.setFormatter(formatter)
-
-# #logger.addHandler(console_handler)
-# logger.addHandler(file_handler)
+    def get_logger(self):
+        """Return the configured logger."""
+        return self._logger
