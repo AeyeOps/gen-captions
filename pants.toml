@@ -15,13 +15,20 @@ backend_packages = [
   "pants.backend.python.lint.docformatter",
   "pants.backend.python.lint.autoflake",
   "pants.backend.python.lint.pyupgrade",
+
   "pants.backend.python.typecheck.mypy",
+  "pants.backend.python.providers.experimental.pyenv",
+  "pants.backend.python.test.pytest",
+
   "pants.backend.build_files.fmt.black",
   "pants.backend.shell",
   "pants.backend.shell.lint.shfmt",
   "pants.backend.shell.lint.shellcheck",
   "pants.backend.tools.preamble",
   "pants.backend.tools.taplo",
+
+
+
   "pants.backend.experimental.openapi",
   "pants.backend.experimental.openapi.lint.openapi_format",
   "pants.backend.experimental.python",
@@ -29,7 +36,6 @@ backend_packages = [
   "pants.backend.experimental.tools.semgrep",
   "pants.backend.experimental.tools.yamllint",
   "pants.backend.experimental.visibility",
-  "pants.backend.python.providers.experimental.pyenv",
 ]
 
 
