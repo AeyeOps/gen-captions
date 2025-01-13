@@ -18,7 +18,6 @@ backend_packages = [
 
   "pants.backend.python.typecheck.mypy",
   "pants.backend.python.providers.experimental.pyenv",
-  "pants.backend.python.test.pytest",
 
   "pants.backend.build_files.fmt.black",
   "pants.backend.shell",
@@ -26,7 +25,6 @@ backend_packages = [
   "pants.backend.shell.lint.shellcheck",
   "pants.backend.tools.preamble",
   "pants.backend.tools.taplo",
-
 
 
   "pants.backend.experimental.openapi",
