@@ -22,5 +22,6 @@ def test_cli_gen_env(tmp_path, monkeypatch):
     assert result.exit_code == 0
     # Should create .env1 or similar
     assert (
-        "Created .env1" in result.output or "Created .env" in result.output
+        "Created .env1" in result.output
+        or "Created .env" in result.output
     )

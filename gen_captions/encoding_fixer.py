@@ -1,9 +1,11 @@
+"""Module for fixing encoding issues in caption and configuration files."""
+
 import os
 from logging import Logger
 
 from rich.console import Console
-from rich.progress import (BarColumn, Progress, SpinnerColumn, TextColumn,
-                           TimeElapsedColumn)
+from rich.progress import (BarColumn, Progress, SpinnerColumn,
+                           TextColumn, TimeElapsedColumn)
 
 
 def fix_encoding_issues(
@@ -33,7 +35,9 @@ def fix_encoding_issues(
 
     # If there are no files to scan, bail out
     if not files_to_scan:
-        console.print("[bold green]No files found to fix encoding![/]")
+        console.print(
+            "[bold green]No files found to fix encoding![/]"
+        )
         logger.info(
             "No .txt/.yml/.yaml files found in specified directories."
         )
@@ -53,19 +57,27 @@ def fix_encoding_issues(
         needed."""
         for enc in encodings:
             logger.info(
-                "Scanning file: %s with encoding %s...", file_path, enc
+                "Scanning file: %s with encoding %s...",
+                file_path,
+                enc,
             )
             try:
                 with open(file_path, encoding=enc) as rf:
                     text = rf.read()
                 # If we used an encoding other than utf-8, convert it
                 if enc != "utf-8":
-                    text = text.encode("utf-8", "ignore").decode("utf-8")
+                    text = text.encode("utf-8", "ignore").decode(
+                        "utf-8"
+                    )
                     logger.info(
-                        "Converting %s to UTF-8 from %s...", file_path, enc
+                        "Converting %s to UTF-8 from %s...",
+                        file_path,
+                        enc,
                     )
                 # Write back in UTF-8
-                with open(file_path, "w", encoding="utf-8") as wf:
+                with open(
+                    file_path, "w", encoding="utf-8"
+                ) as wf:
                     wf.write(text)
                 break  # Stop checking other encodings once successful
             except UnicodeDecodeError as ude:
@@ -81,7 +93,9 @@ def fix_encoding_issues(
     with Progress(
         SpinnerColumn(),
         BarColumn(),
-        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        TextColumn(
+            "[progress.percentage]{task.percentage:>3.0f}%"
+        ),
         TimeElapsedColumn(),
         console=console,
     ) as progress:
@@ -94,5 +108,7 @@ def fix_encoding_issues(
             process_file(file_path)
             progress.advance(task_id)
 
-    console.print("[bold green]Encoding fix completed for all files![/]")
+    console.print(
+        "[bold green]Encoding fix completed for all files![/]"
+    )
     logger.info("Finished fixing encoding issues for all files.")

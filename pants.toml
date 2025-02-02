@@ -60,15 +60,15 @@ url_platform_mapping = {}
 
 
 [black]
-args = ["--line-length=75"]
+args = ["--line-length=65"]
 
 [isort]
-args = ["--line-length=75"]
+args = ["--line-length=65"]
 
 [flake8]
 args = [
   "--extend-ignore=W291,W503",
-  "--max-line-length=85",
+  "--max-line-length=105",
   "--exclude=tests/*",
 ]
 
@@ -87,6 +87,12 @@ args = [
 
 [pydocstyle]
 args = ["--ignore=D200,D203,D212,D400,D213"]
+
+[mypy]
+args = ["--ignore-missing-imports"]
+interpreter_constraints = [">=3.11"]
+install_from_resolve = "python-default"
+
 
 [pytest]
 

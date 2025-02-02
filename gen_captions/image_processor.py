@@ -1,3 +1,5 @@
+"""Module for processing images and generating captions using LLM backend."""
+
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -5,8 +7,8 @@ from functools import partial
 from logging import Logger
 
 from rich.console import Console
-from rich.progress import (BarColumn, Progress, SpinnerColumn, TextColumn,
-                           TimeElapsedColumn)
+from rich.progress import (BarColumn, Progress, SpinnerColumn,
+                           TextColumn, TimeElapsedColumn)
 
 from .config import Config
 from .llm_client import get_llm_client
@@ -28,9 +30,13 @@ def process_images(
     """
     # Provide a visible console message to indicate start
     console.print(
-        f"[bold green]Starting to process images with LLM backend: {backend}[/]"
+        f"[bold green]Starting to process images with LLM backend: "
+        f"{backend}[/]"
     )
-    logger.info("Starting to process images with LLM backend: %s", backend)
+    logger.info(
+        "Starting to process images with LLM backend: %s",
+        backend,
+    )
 
     llm_client = get_llm_client(
         backend, config=config, console=console, logger=logger
@@ -46,7 +52,9 @@ def process_images(
     for filename in os.listdir(image_directory):
         if filename.lower().endswith((".jpg", ".jpeg", ".png")):
             txt_filename = os.path.splitext(filename)[0] + ".txt"
-            txt_path = os.path.join(caption_directory, txt_filename)
+            txt_path = os.path.join(
+                caption_directory, txt_filename
+            )
             if not prompt_exists(txt_path):
                 images_to_process.append((filename, txt_path))
             else:
@@ -55,20 +63,25 @@ def process_images(
     # Print skip info (just a summary, not per-file spam)
     if skipped_count > 0:
         console.print(
-            f"[bold yellow]Skipped {skipped_count} image(s) that already have prompts.[/]"
+            f"[bold yellow]Skipped {skipped_count} image(s) that already "
+            "have prompts.[/]"
         )
         logger.info(
-            "Skipped %d images that already have prompts.", skipped_count
+            "Skipped %d images that already have prompts.",
+            skipped_count,
         )
 
     # If nothing to do, bail out early
     if not images_to_process:
-        console.print("[bold green]No new images to process. All done![/]")
+        console.print(
+            "[bold green]No new images to process. All done![/]"
+        )
         logger.info("No new images to process. Finished.")
         return
 
     console.print(
-        f"[bold cyan]Found {len(images_to_process)} image(s) that need processing.[/]"
+        f"[bold cyan]Found {len(images_to_process)} "
+        "image(s) that need processing.[/]"
     )
 
     # Simple console print instead of creating a second live display
@@ -77,13 +90,19 @@ def process_images(
     )
 
     futures = []
-    with ThreadPoolExecutor(max_workers=config.THREAD_POOL) as executor:
+    with ThreadPoolExecutor(
+        max_workers=config.THREAD_POOL
+    ) as executor:
         # Submit tasks
         for filename, txt_path in images_to_process:
             image_path = os.path.join(image_directory, filename)
-            logger.info("Submitting %s for processing...", filename)
+            logger.info(
+                "Submitting %s for processing...", filename
+            )
             future = executor.submit(
-                partial(llm_client.generate_description, image_path)
+                partial(
+                    llm_client.generate_description, image_path
+                )
             )
             futures.append((future, txt_path, filename))
 
@@ -94,7 +113,9 @@ def process_images(
         with Progress(
             SpinnerColumn(),
             BarColumn(),
-            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            TextColumn(
+                "[progress.percentage]{task.percentage:>3.0f}%"
+            ),
             TimeElapsedColumn(),
             console=console,
         ) as progress:
@@ -120,7 +141,10 @@ def process_images(
                             break
 
                     # Check result for "[trigger]"
-                    if description and "[trigger]" in description:
+                    if (
+                        description
+                        and "[trigger]" in description
+                    ):
                         with open(
                             txt_path, "w", encoding="utf-8"
                         ) as txt_file:
@@ -128,24 +152,32 @@ def process_images(
                         logger.info("Processed: %s", filename)
                     elif description:
                         logger.info(
-                            "Rejected content for: %s. No [trigger] found. Prompt: %s",
+                            "Rejected content for: %s. No [trigger] found. "
+                            "Prompt: %s",
                             filename,
                             description,
                         )
                         console.print(
-                            f"[bold yellow]Rejected content for: {filename}. No trigger found.[/]"
+                            (
+                                "[bold yellow]Rejected content for: ",
+                                f"{filename}. No trigger found.[/]",
+                            )
                         )
                     else:
                         logger.info(
-                            "Rejected content for: %s. No description generated.",
+                            "Rejected content for: %s. "
+                            "No description generated.",
                             filename,
                         )
                         console.print(
-                            f"[bold yellow]Rejected content for: {filename}. No description generated.[/]"
+                            f"[bold yellow]Rejected content for: {filename}."
+                            " No description generated.[/]"
                         )
                 except Exception as e:
                     logger.error(
-                        "Error processing image: %s", e, exc_info=True
+                        "Error processing image: %s",
+                        e,
+                        exc_info=True,
                     )
                     console.print(
                         f"[bold red]Error processing image: {e}[/]"

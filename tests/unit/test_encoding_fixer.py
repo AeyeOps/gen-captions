@@ -14,7 +14,9 @@ def test_fix_encoding_issues():
         # Make a text file with cp1252-encoded data
         test_file = os.path.join(tmpdir, "test.txt")
         with open(test_file, "wb") as f:
-            f.write(b"Hello \x96 world")  # 0x96 is a typical cp1252 dash
+            f.write(
+                b"Hello \x96 world"
+            )  # 0x96 is a typical cp1252 dash
 
         # Run the encoding fixer on the directory
         fix_encoding_issues(

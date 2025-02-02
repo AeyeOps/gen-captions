@@ -1,3 +1,4 @@
+"""Module for testing default configuration settings."""
 from gen_captions.config import Config
 
 
@@ -18,7 +19,9 @@ def test_config_backend(monkeypatch):
     """Test set_backend method picks up env variables for openai or grok."""
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
     monkeypatch.setenv("OPENAI_MODEL", "test-model")
-    monkeypatch.setenv("OPENAI_BASE_URL", "https://api.openai.fake")
+    monkeypatch.setenv(
+        "OPENAI_BASE_URL", "https://api.openai.fake"
+    )
     c = Config()
     c.set_backend("openai")
     assert c.LLM_API_KEY == "test-key"

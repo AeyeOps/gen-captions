@@ -15,7 +15,10 @@ from .openai_generic_client import OpenAIGenericClient
 
 
 def get_llm_client(
-    backend: str, config: Config, console: Console, logger: Logger
+    backend: str,
+    config: Config,
+    console: Console,
+    logger: Logger,
 ):
     """Get an LLM client based on the backend argument.
 
@@ -31,7 +34,9 @@ def get_llm_client(
     logger.info(msg)
 
     if backend in ("openai", "grok"):
-        logger.info("Using OpenAI Generic backend for %s.", backend)
+        logger.info(
+            "Using OpenAI Generic backend for %s.", backend
+        )
         return OpenAIGenericClient(
             config=config, console=console, logger=logger
         )

@@ -14,7 +14,9 @@ from .logger_config import CustomLogger
 from .system_info import print_system_info
 
 load_dotenv(
-    dotenv_path=find_dotenv(usecwd=True, raise_error_if_not_found=True),
+    dotenv_path=find_dotenv(
+        usecwd=True, raise_error_if_not_found=True
+    ),
     override=True,
     verbose=True,
     encoding="utf-8",
@@ -91,10 +93,20 @@ def fix_encoding(
     caption_directory = (
         os.path.abspath(caption_dir) if caption_dir else None
     )
-    config_directory = os.path.abspath(config_dir) if config_dir else None
+    config_directory = (
+        os.path.abspath(config_dir) if config_dir else None
+    )
 
     print_system_info(console, logger)
     console.print()
+
+    # If the directories are not provided, print a warning and exit
+    if not caption_directory or not config_directory:
+        logger.error(
+            "Error: Both --caption-dir and --config-dir are required."
+        )
+        raise typer.Exit(code=1)
+
     fix_encoding_issues(
         console=console,
         caption_dir=caption_directory,
@@ -116,7 +128,9 @@ def generate(
     """Generate image descriptions."""
     print_system_info(console, logger)
 
-    image_directory = os.path.abspath(image_dir) if image_dir else None
+    image_directory = (
+        os.path.abspath(image_dir) if image_dir else None
+    )
     caption_directory = (
         os.path.abspath(caption_dir) if caption_dir else None
     )

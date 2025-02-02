@@ -11,8 +11,12 @@ from rich.table import Table
 def print_system_info(console: Console, logger: Logger):
     """Print system information and environment variable settings."""
     logger.info("\r\n" * 2)
-    console.print("[bold underline]System Information:[/bold underline]")
-    system_table = Table(show_header=True, header_style="bold cyan")
+    console.print(
+        "[bold underline]System Information:[/bold underline]"
+    )
+    system_table = Table(
+        show_header=True, header_style="bold cyan"
+    )
     system_table.add_column("Property", style="dim")
     system_table.add_column("Value")
     system_info = {
@@ -29,7 +33,9 @@ def print_system_info(console: Console, logger: Logger):
     console.print(
         "\n[bold underline]Environment Variable Settings:[/bold underline]"
     )
-    env_table = Table(show_header=True, header_style="bold green")
+    env_table = Table(
+        show_header=True, header_style="bold green"
+    )
     env_table.add_column("Variable", style="dim")
     env_table.add_column("Value")
     for key, value in os.environ.items():

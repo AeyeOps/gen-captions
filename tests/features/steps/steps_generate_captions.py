@@ -1,3 +1,5 @@
+"""BDD steps for generating captions for images."""
+
 from behave import given, then, when
 
 

@@ -23,7 +23,9 @@ class Config:
             "LLM_API_KEY": None,
             "LLM_MODEL": None,
             "LLM_BASE_URL": None,
-            "THREAD_POOL": int(os.getenv("GETCAP_THREAD_POOL", 10)),
+            "THREAD_POOL": int(
+                os.getenv("GETCAP_THREAD_POOL", 10)
+            ),
             "THROTTLE_RETRIES": int(
                 os.getenv("GETCAP_THROTTLE_RETRIES", 10)
             ),
@@ -85,9 +87,13 @@ class Config:
         """Set the backend configuration based on the specified backend."""
         backend = backend.upper().strip()
 
-        self._config["LLM_API_KEY"] = os.getenv(f"{backend}_API_KEY")
+        self._config["LLM_API_KEY"] = os.getenv(
+            f"{backend}_API_KEY"
+        )
         self._config["LLM_MODEL"] = os.getenv(f"{backend}_MODEL")
-        self._config["LLM_BASE_URL"] = os.getenv(f"{backend}_BASE_URL")
+        self._config["LLM_BASE_URL"] = os.getenv(
+            f"{backend}_BASE_URL"
+        )
 
     def get_version(self):
         """Return the current version."""

@@ -1,3 +1,5 @@
+"""Module for logger configuration used in gen_captions."""
+
 import logging
 import os
 import threading
@@ -26,8 +28,9 @@ class ThreadLogFilter(logging.Filter):
 class CustomLogFormatter(logging.Formatter):
     def format(self, record):
         return (
-            f"[{record.date_time}][0x{record.process:04x}][0x{record.thread:04x}]"
-            + f"[{record.levelname:>8}][{record.module}::{record.funcName}] {record.msg}"
+            f"[{record.date_time}][0x{record.process:04x}]"
+            f"[0x{record.thread:04x}][{record.levelname:>8}]"
+            f"[{record.module}::{record.funcName}] {record.msg}"
         )
 
 

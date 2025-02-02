@@ -3,7 +3,8 @@ from unittest.mock import MagicMock, patch
 from rich.console import Console
 
 from gen_captions.config import Config
-from gen_captions.openai_generic_client import OpenAIGenericClient
+from gen_captions.openai_generic_client import \
+    OpenAIGenericClient
 
 
 @patch("openai.OpenAI")
@@ -18,10 +19,16 @@ def test_openai_generic_client(mock_openai):
 
     # mock response
     mock_instance = mock_openai.return_value
-    mock_instance.chat.completions.create.return_value = MagicMock(
-        choices=[
-            MagicMock(message=MagicMock(content="[trigger] some desc"))
-        ]
+    mock_instance.chat.completions.create.return_value = (
+        MagicMock(
+            choices=[
+                MagicMock(
+                    message=MagicMock(
+                        content="[trigger] some desc"
+                    )
+                )
+            ]
+        )
     )
 
     desc = client.generate_description("fake_path.jpg")
