@@ -6,10 +6,6 @@ It encapsulates the configuration settings for the application.
 import os
 import pkgutil
 
-from dotenv import load_dotenv
-
-load_dotenv(override=True)
-
 
 class Config:
     """A class to manage the configuration of the application.
@@ -88,6 +84,7 @@ class Config:
     def set_backend(self, backend: str):
         """Set the backend configuration based on the specified backend."""
         backend = backend.upper().strip()
+
         self._config["LLM_API_KEY"] = os.getenv(f"{backend}_API_KEY")
         self._config["LLM_MODEL"] = os.getenv(f"{backend}_MODEL")
         self._config["LLM_BASE_URL"] = os.getenv(f"{backend}_BASE_URL")

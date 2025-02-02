@@ -5,24 +5,16 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Current File",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal",
-            "justMyCode": false
-        },
-        
-        {
             "name": "Python Debugger: gen_captions.cli",
             "type": "debugpy",
             "request": "launch",
             "module": "gen_captions.cli",
             "args": [
+                "--fix-encoding",
                 "--image-dir",
-                "/opt/images/morena-lora/",
+                "../images/demi-lora/",
                 "--caption-dir",
-                "../images/morena-lora/",
+                "../images/demi-lora/",
                 "--config-dir",
                 "../ai-toolkit/config/"
             ],

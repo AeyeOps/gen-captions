@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 import typer
-from dotenv import dotenv_values
+from dotenv import dotenv_values, find_dotenv, load_dotenv
 from rich.console import Console
 
 from .config import Config
@@ -13,12 +13,18 @@ from .image_processor import process_images
 from .logger_config import CustomLogger
 from .system_info import print_system_info
 
+load_dotenv(
+    dotenv_path=find_dotenv(usecwd=True, raise_error_if_not_found=True),
+    override=True,
+    verbose=True,
+    encoding="utf-8",
+)
+
 console = Console()
 config = Config()
 logger = CustomLogger(
-    config=config, console=console, name=__name__
-).get_logger()
-
+    console=console, name="gen_captions", level=config.LOG_LEVEL
+).logger
 
 app = typer.Typer(
     help=f"Caption Generator v{config.VERSION} - "
@@ -67,7 +73,9 @@ def gen_env():
             # else fallback to a placeholder or default
             wf.write(f"{key}={existing.get(key, '')}\n")
 
-    print(f"Created {new_file} with collected environment variables.")
+    console.print(
+        f"Created {new_file} with collected environment variables."
+    )
 
 
 @app.command(help="Fix encoding issues in text files.")
@@ -88,6 +96,7 @@ def fix_encoding(
     print_system_info(console, logger)
     console.print()
     fix_encoding_issues(
+        console=console,
         caption_dir=caption_directory,
         config_dir=config_directory,
         logger=logger,
@@ -106,7 +115,6 @@ def generate(
 ):
     """Generate image descriptions."""
     print_system_info(console, logger)
-    console.print()
 
     image_directory = os.path.abspath(image_dir) if image_dir else None
     caption_directory = (
