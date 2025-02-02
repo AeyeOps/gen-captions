@@ -105,27 +105,3 @@ class CustomLogger:
     @property
     def logger(self):
         return self._log
-
-
-# import logging
-# from logging.handlers import RotatingFileHandler
-# from .config import Config
-
-# # Configure logging
-# logging.basicConfig(
-#     format="%(asctime)s [%(threadName)s] [%(levelname)s] %(message)s",
-#     level=Config.LOG_LEVEL,
-# )
-# logger = logging.getLogger(__name__)
-# logger.setLevel(Config.LOG_LEVEL)
-
-# formatter = logging.Formatter("%(asctime)s [%(threadName)s] [%(levelname)s] %(message)s")
-
-# console_handler = logging.StreamHandler()
-# console_handler.setFormatter(formatter)
-
-# file_handler = RotatingFileHandler("gen_captions.log", mode="a", maxBytes=10485760, backupCount=5)
-# file_handler.setFormatter(formatter)
-
-# logger.addHandler(console_handler)
-# logger.addHandler(file_handler)

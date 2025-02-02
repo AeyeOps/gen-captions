@@ -165,7 +165,8 @@ class OpenAIGenericClient:
                     "Error generating description: %s", e
                 )
                 self._console.print(
-                    f"[bold red]Error generating description for {image_path}: {e}[/]"
+                    f"[bold red]Error generating description "
+                    f" for {image_path}: {e}[/]"
                 )
                 break
 
