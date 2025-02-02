@@ -166,3 +166,4 @@ cython_debug/
 /.pants.d
 /dist/
 
+.__gen_captions.lock
