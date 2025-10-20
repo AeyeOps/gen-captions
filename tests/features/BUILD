@@ -1,8 +1,7 @@
-python_tests(
-    name="bdd_tests",
+python_sources(
+    name="steps",
     sources=["steps/*.py"],
     dependencies=[
         "gen_captions",
-        "tests/features/steps",
     ],
 )

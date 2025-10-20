@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3] - 2025-02-20
+
+### Added
+
+* **Contributor Guide**: Added `AGENTS.md` describing project layout, tooling, and contribution conventions for agents and maintainers.
+* **Feature Step Placeholders**: Added lightweight pytest-compatible guards in `tests/features/steps/*.py` so Pants can collect the Behave step modules without errors.
+
+### Changed
+
+* **CLI Defaults & UX**
+  * `gen_captions/cli.py` now ensures the caption output directory exists before writing files and surfaces top-level help when no subcommand is provided.
+  * `gen_captions/config.py` supplies default OpenAI model (`gpt-4o-mini`) and base URL fallbacks, while `gen_captions/openai_generic_client.py` logs when those defaults are used and warns if the API key is missing.
+  * `gen_captions/logger_config.py` gracefully degrades when the optional queue helper is unavailable.
+  * `gen_captions/image_processor.py` reuses the Rich progress helper import path shared with the encoding fixer.
+* **Documentation Updates**
+  * `README.md` now documents the new environment fallbacks, the `GEN_CAPTIONS_ENV_FILE` override, and clarifies optional OpenAI settings.
+  * `AGENTS.md` references the default model/base URL behaviour.
+* **Tests**
+  * Updated unit tests to patch the revised imports (`tests/unit/test_image_processor.py`) and to assert UTF-8 round-tripping in `tests/unit/test_encoding_fixer.py`.
+  * `tests/unit/test_openai_api.py` now stubs `encode_image` so the OpenAI client mock no longer hits the filesystem.
+
+### Dependency Updates
+
+* Added `rich` to `requirements/requirements.txt` and regenerated `gen_captions/lockfile.lock`, which pulled in upstream upgrades (e.g. `openai 2.5.0`, `black 25.9.0`, `torch 2.9.0`, `transformers 4.57.1`, and related CUDA libraries).
+
 ## [0.2.2] - 2025-02-02
 
 ### Removed

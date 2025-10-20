@@ -1,7 +1,11 @@
+"""Utilities for calling OpenAI-compatible caption models."""
+
+# pylint: disable=duplicate-code
+
 import time
 from logging import Logger
 
-from openai import APIConnectionError, OpenAI, RateLimitError
+import openai
 from requests import HTTPError
 from rich.console import Console
 
@@ -27,16 +31,38 @@ MODEL_CONFIG = {
 
 
 class OpenAIGenericClient:
-    """OpenAI generic API client for interacting with.
+    """Client that wraps OpenAI-compatible chat endpoints."""
 
-    Both OpenAI and Grok to generate image descriptions.
-    """
+    # pylint: disable=too-few-public-methods
 
     def __init__(
         self, config: Config, console: Console, logger: Logger
     ):
         """Initialize the OpenAI client with the API key and base URL."""
-        self._client = OpenAI(
+        fallback_model = config.DEFAULT_MODELS.get("OPENAI", "gpt-4o-mini")
+        if not config.LLM_MODEL:
+            logger.warning(
+                "LLM_MODEL is not configured; defaulting to %s",
+                fallback_model,
+            )
+            config._config["LLM_MODEL"] = fallback_model
+
+        if not config.LLM_BASE_URL:
+            default_base = config.DEFAULT_BASE_URLS.get(
+                "OPENAI", "https://api.openai.com/v1"
+            )
+            logger.debug(
+                "LLM_BASE_URL missing; defaulting to %s",
+                default_base,
+            )
+            config._config["LLM_BASE_URL"] = default_base
+
+        if not config.LLM_API_KEY:
+            logger.error(
+                "LLM_API_KEY is not set. Requests to the OpenAI API will fail."
+            )
+
+        self._client = openai.OpenAI(
             api_key=config.LLM_API_KEY,
             base_url=config.LLM_BASE_URL,
         )
@@ -51,6 +77,7 @@ class OpenAIGenericClient:
         - We hit a rate limit or transient error (429, etc.)
         - The model returns a description that does NOT contain '[trigger]'
         """
+        # pylint: disable=broad-except
         self._logger.info(
             "Processing image with LLM: %s", image_path
         )
@@ -118,18 +145,18 @@ class OpenAIGenericClient:
                 return ""
 
             except (
-                RateLimitError,
+                openai.RateLimitError,
                 HTTPError,
-                APIConnectionError,
+                openai.APIConnectionError,
             ) as re:
                 # Handle known API-limiting / request errors
                 code = 0
                 if (
-                    isinstance(re, APIConnectionError)
+                    isinstance(re, openai.APIConnectionError)
                     and re.code
                 ):
                     code = int(re.code)
-                elif isinstance(re, RateLimitError):
+                elif isinstance(re, openai.RateLimitError):
                     code = re.status_code
                 elif isinstance(re, HTTPError):
                     code = re.response.status_code
@@ -180,8 +207,7 @@ class OpenAIGenericClient:
         return ""
 
     def _build_chat_request(self, base64_image: str) -> dict:
-        """Dynamically build request parameters based on the model using
-        MODEL_CONFIG for known quirks."""
+        """Build request parameters while applying model-specific quirks."""
         model_name = self._config.LLM_MODEL.strip().lower()
         model_quirks = MODEL_CONFIG.get(model_name, {})
 

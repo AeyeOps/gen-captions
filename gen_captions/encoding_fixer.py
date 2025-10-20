@@ -3,9 +3,8 @@
 import os
 from logging import Logger
 
+from rich import progress as rich_progress
 from rich.console import Console
-from rich.progress import (BarColumn, Progress, SpinnerColumn,
-                           TextColumn, TimeElapsedColumn)
 
 
 def fix_encoding_issues(
@@ -15,6 +14,7 @@ def fix_encoding_issues(
     console: Console,  # <-- Add a console parameter for Rich output
 ):
     """Fix encoding issues in text files in caption_dir and config_dir."""
+    # pylint: disable=too-many-locals,duplicate-code
     encodings = ["utf-8", "latin1", "cp1252"]
     scan_dirs = [caption_dir, config_dir]
 
@@ -53,8 +53,11 @@ def fix_encoding_issues(
 
     # Single function to process a single file
     def process_file(file_path: str):
-        """Try to open file under different encodings, convert to UTF-8 if
-        needed."""
+        """Attempt to read the file with fallback encodings.
+
+        The text is re-encoded and written back as UTF-8 when a fallback
+        encoding succeeds.
+        """
         for enc in encodings:
             logger.info(
                 "Scanning file: %s with encoding %s...",
@@ -90,13 +93,13 @@ def fix_encoding_issues(
                 continue
 
     # Use a single progress bar for scanning
-    with Progress(
-        SpinnerColumn(),
-        BarColumn(),
-        TextColumn(
+    with rich_progress.Progress(
+        rich_progress.SpinnerColumn(),
+        rich_progress.BarColumn(),
+        rich_progress.TextColumn(
             "[progress.percentage]{task.percentage:>3.0f}%"
         ),
-        TimeElapsedColumn(),
+        rich_progress.TimeElapsedColumn(),
         console=console,
     ) as progress:
         task_id = progress.add_task(

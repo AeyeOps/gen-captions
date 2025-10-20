@@ -13,7 +13,7 @@ def fake_llm_generate_description(image_path):
     return "[trigger], a test description"
 
 
-@patch("gen_captions.llm_client.get_llm_client")
+@patch("gen_captions.image_processor.get_llm_client")
 def test_process_images(mock_get_llm_client):
     mock_client = MagicMock()
     mock_client.generate_description.side_effect = (

@@ -6,9 +6,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
 from logging import Logger
 
+from rich import progress as rich_progress
 from rich.console import Console
-from rich.progress import (BarColumn, Progress, SpinnerColumn,
-                           TextColumn, TimeElapsedColumn)
 
 from .config import Config
 from .llm_client import get_llm_client
@@ -28,6 +27,8 @@ def process_images(
     Descriptions are generated using the specified LLM backend and saved
     to the caption directory.
     """
+    # pylint: disable=too-many-arguments,too-many-locals
+    # pylint: disable=too-many-branches,too-many-statements,broad-except,duplicate-code
     # Provide a visible console message to indicate start
     console.print(
         f"[bold green]Starting to process images with LLM backend: "
@@ -110,13 +111,13 @@ def process_images(
             time.sleep(1 / config.THROTTLE_SUBMISSION_RATE)
 
         # Use a single Progress bar (only one live display)
-        with Progress(
-            SpinnerColumn(),
-            BarColumn(),
-            TextColumn(
+        with rich_progress.Progress(
+            rich_progress.SpinnerColumn(),
+            rich_progress.BarColumn(),
+            rich_progress.TextColumn(
                 "[progress.percentage]{task.percentage:>3.0f}%"
             ),
-            TimeElapsedColumn(),
+            rich_progress.TimeElapsedColumn(),
             console=console,
         ) as progress:
             task_id = progress.add_task(

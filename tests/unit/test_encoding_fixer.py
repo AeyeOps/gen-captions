@@ -27,7 +27,7 @@ def test_fix_encoding_issues():
         )
 
         # The file should now be valid UTF-8
-        with open(test_file, "rb") as f:
-            data = f.read()
-            # Should not contain raw \x96
-            assert b"\x96" not in data
+        with open(test_file, encoding="utf-8") as f:
+            text = f.read()
+            # Ensure the character round-tripped without replacement glyphs.
+            assert "\ufffd" not in text

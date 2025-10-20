@@ -3,3 +3,4 @@ python-dotenv
 requests
 typer
 concurrent_log_handler
+rich

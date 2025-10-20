@@ -13,14 +13,45 @@ from .image_processor import process_images
 from .logger_config import CustomLogger
 from .system_info import print_system_info
 
-load_dotenv(
-    dotenv_path=find_dotenv(
-        usecwd=True, raise_error_if_not_found=True
-    ),
-    override=True,
-    verbose=True,
-    encoding="utf-8",
-)
+
+def _load_environment() -> Path | None:
+    """Load environment variables from disk if a file is available.
+
+    Respect an explicit ``GEN_CAPTIONS_ENV_FILE`` hint, fall back to a
+    discoverable ``.env`` near the working directory, and quietly skip
+    loading when no file exists so that imports succeed in hermetic test
+    sandboxes.
+    """
+    env_hint = os.getenv("GEN_CAPTIONS_ENV_FILE")
+    candidate_paths = []
+
+    if env_hint:
+        candidate_paths.append(Path(env_hint).expanduser())
+
+    discovered = find_dotenv(
+        usecwd=True, raise_error_if_not_found=False
+    )
+    if discovered:
+        candidate_paths.append(Path(discovered))
+    else:
+        candidate_paths.append(Path(".env"))
+
+    for candidate in candidate_paths:
+        if candidate and candidate.is_file():
+            load_dotenv(
+                dotenv_path=str(candidate),
+                override=False,
+                verbose=False,
+                encoding="utf-8",
+            )
+            return candidate
+
+    # Fall back to dotenv's default search which safely no-ops when absent.
+    load_dotenv(override=False, encoding="utf-8")
+    return None
+
+
+ENV_FILE = _load_environment()
 
 console = Console()
 config = Config()
@@ -28,10 +59,24 @@ logger = CustomLogger(
     console=console, name="gen_captions", level=config.LOG_LEVEL
 ).logger
 
+if ENV_FILE:
+    logger.debug(
+        "Loaded environment variables from %s", ENV_FILE
+    )
+
 app = typer.Typer(
     help=f"Caption Generator v{config.VERSION} - "
-    "Generate image captions with OpenAI or GROK."
+    "Generate image captions with OpenAI or GROK.",
+    invoke_without_command=True,
 )
+
+
+@app.callback(invoke_without_command=True)
+def main(ctx: typer.Context):
+    """Display top-level help when no subcommand is provided."""
+    if ctx.invoked_subcommand is None:
+        typer.echo(ctx.get_help())
+        raise typer.Exit()
 
 
 @app.command(help="Generate an environment file.")
@@ -150,6 +195,9 @@ def generate(
                 "Error: --image-dir is required if not using --fix-encoding."
             )
             raise typer.Exit(code=1)
+
+        if caption_directory:
+            os.makedirs(caption_directory, exist_ok=True)
 
         # Pass the chosen backend to the process_images function
         process_images(

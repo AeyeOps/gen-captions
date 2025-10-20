@@ -27,9 +27,14 @@ def get_llm_client(
     """
     backend = backend.lower().strip()
     config.set_backend(backend)
+    key_preview = (
+        f"{config.LLM_API_KEY[:6]}..."
+        if config.LLM_API_KEY
+        else "<missing>"
+    )
     msg = (
         f"Backend: {backend}\nLLM_MODEL: {config.LLM_MODEL}\nLLM_API_KEY: "
-        f"{config.LLM_API_KEY[:6]}...\nLLM_BASE_URL: {config.LLM_BASE_URL}"
+        f"{key_preview}\nLLM_BASE_URL: {config.LLM_BASE_URL}"
     )
     logger.info(msg)
 

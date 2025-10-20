@@ -18,6 +18,14 @@ class Config:
         ver = pkgutil.get_data(__name__, "VERSION")
         ver = ver.decode("utf-8").strip() if ver else "0.0.0"
 
+        self.DEFAULT_MODELS = {
+            "OPENAI": "gpt-4o-mini",
+            "GROK": "grok-beta",
+        }
+        self.DEFAULT_BASE_URLS = {
+            "OPENAI": "https://api.openai.com/v1",
+        }
+
         self._config = {
             "VERSION": ver,
             "LLM_API_KEY": None,
@@ -87,12 +95,16 @@ class Config:
         """Set the backend configuration based on the specified backend."""
         backend = backend.upper().strip()
 
+        default_model = self.DEFAULT_MODELS.get(backend)
+        default_base_url = self.DEFAULT_BASE_URLS.get(backend)
         self._config["LLM_API_KEY"] = os.getenv(
             f"{backend}_API_KEY"
         )
-        self._config["LLM_MODEL"] = os.getenv(f"{backend}_MODEL")
-        self._config["LLM_BASE_URL"] = os.getenv(
-            f"{backend}_BASE_URL"
+        self._config["LLM_MODEL"] = (
+            os.getenv(f"{backend}_MODEL") or default_model
+        )
+        self._config["LLM_BASE_URL"] = (
+            os.getenv(f"{backend}_BASE_URL") or default_base_url
         )
 
     def get_version(self):
