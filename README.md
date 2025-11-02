@@ -2,13 +2,14 @@
 
 Generate detailed captions for image datasets using OpenAI-compatible models with rich logging, retry handling, and CLI utilities.
 
-**Version:** 0.3.0
+**Version:** 0.5.0
 **Python:** 3.14+
 **License:** MIT
 
 ## Features
 
-- **Multi-backend LLM support**: Works with OpenAI, GROK, and any OpenAI-compatible API
+- **Multi-backend LLM support**: Works with OpenAI, GROK, LM Studio, Ollama, and any OpenAI-compatible API
+- **Local Model Support**: Run completely offline with LM Studio or Ollama (no API costs, privacy-first)
 - **Robust error handling**: Automatic retries with exponential backoff for rate limits and API errors
 - **Concurrent processing**: Multi-threaded image processing with configurable thread pools
 - **Smart validation**: Validates model outputs for required trigger tokens before saving

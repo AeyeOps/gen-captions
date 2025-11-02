@@ -4,6 +4,53 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2025-11-02
+
+### Added
+
+* **Local Model Support**: Run gen-captions completely offline with local AI servers
+  * **LM Studio Integration** (http://localhost:1234/v1)
+    - qwen/qwen3-vl-8b - Enhanced visual perception (up to 1M context)
+    - qwen/qwen2.5-vl-7b - Dynamic resolution, OCR, chart parsing
+    - google/gemma-3-27b - Multimodal (128K context, up to 8K output)
+    - mistralai/magistral-small-2509 - Reasoning with vision (128K)
+  * **Ollama Integration** (http://localhost:11434/v1)
+    - qwen2.5vl:7b - Multimodal with dynamic resolution
+    - minicpm-o-2.6:latest - End-to-end multimodal (vision + speech)
+  * New model profiles: `lmstudio` and `ollama`
+  * No API keys required for local providers (runs completely offline)
+  * MODEL_CONFIG entries for all 6 local vision models
+* **Concurrent Processing**: Local models support same ThreadPoolExecutor features as cloud APIs
+  - Configurable thread pool size for GPU optimization
+  - Rate limiting with throttle_submission_rate
+  - Exponential backoff retry logic
+  - All processing settings apply equally to local/cloud providers
+
+### Changed
+
+* Updated `--model-profile` to accept `lmstudio` and `ollama` in addition to `openai` and `grok`
+* Enhanced `config.py` to handle local providers with placeholder API keys
+* Updated LLM client factory to recognize local backends (OpenAI-compatible endpoints)
+* CLI help text now mentions "vision-capable AI models" and local server support
+
+### Technical
+
+* Modified Files:
+  - `gen_captions/default.yaml` - Added lmstudio and ollama backend configurations
+  - `gen_captions/config.py` - Added local provider API key handling
+  - `gen_captions/llm_client.py` - Extended factory to support lmstudio/ollama
+  - `gen_captions/openai_generic_client.py` - Added MODEL_CONFIG for 6 local models
+  - `gen_captions/cli.py` - Updated validation and help text
+* Both local providers use OpenAI-compatible endpoints (zero client code changes needed)
+* Local models automatically get all concurrency and retry features
+
+### Benefits
+
+* ✅ **Privacy**: Images never leave your machine
+* ✅ **No API costs**: Free to use after model download
+* ✅ **Offline**: Works without internet connection
+* ✅ **Fast**: No network latency for inference
+
 ## [0.4.0] - 2025-11-02
 
 ### Added

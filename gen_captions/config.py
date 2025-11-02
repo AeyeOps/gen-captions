@@ -120,7 +120,8 @@ class Config:
         """Set active model profile and load its configuration.
 
         Args:
-            backend: Model profile name (e.g., 'openai', 'grok')
+            backend: Model profile name (e.g., 'openai', 'grok',
+                     'lmstudio', 'ollama')
         """
         backend = backend.lower().strip()
         self._current_backend = backend
@@ -140,21 +141,37 @@ class Config:
             )
             return
 
-        # API key ALWAYS from environment (security)
+        # API key handling: local providers don't need keys
         backend_upper = backend.upper()
-        self._llm_api_key = os.getenv(
-            f"{backend_upper}_API_KEY"
-        )
-
-        if not self._llm_api_key:
+        if backend in ("lmstudio", "ollama"):
+            # Local providers use backend name as placeholder
+            self._llm_api_key = backend
             self._console.print(
-                f"[bold yellow]Warning:[/] "
-                f"{backend_upper}_API_KEY not set"
+                f"[blue]Info:[/] Using local provider '{backend}' "
+                f"(no API key required)"
             )
+        else:
+            # Cloud providers require API keys from environment
+            self._llm_api_key = os.getenv(
+                f"{backend_upper}_API_KEY"
+            )
+
+            if not self._llm_api_key:
+                self._console.print(
+                    f"[bold yellow]Warning:[/] "
+                    f"{backend_upper}_API_KEY not set"
+                )
 
         # Model and base_url from YAML only
         self._llm_model = backend_config.get("model")
         self._llm_base_url = backend_config.get("base_url")
+
+        # Show configuration
+        self._console.print(
+            f"[green]✓[/] Model profile set to: {backend}"
+        )
+        self._console.print(f"  Model: {self._llm_model}")
+        self._console.print(f"  Base URL: {self._llm_base_url}")
 
     def get_caption_config(self) -> Dict[str, Any]:
         """Get caption generation configuration.

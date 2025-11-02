@@ -21,28 +21,50 @@ def get_llm_client(
 ):
     """Get an LLM client based on the model profile.
 
-    Depending on the profile specified, returns the corresponding LLM
-    client.
+    Supports cloud providers (OpenAI, GROK) and local servers
+    (LM Studio, Ollama).
+
+    Args:
+        backend: Model profile (openai, grok, lmstudio, ollama)
+        config: Configuration instance
+        console: Rich console for output
+        logger: Logger instance
+
+    Returns:
+        Appropriate LLM client instance
+
+    Raises:
+        ValueError: If backend is not supported
     """
     backend = backend.lower().strip()
     config.set_backend(backend)
-    key_preview = (
-        f"{config.LLM_API_KEY[:6]}..."
-        if config.LLM_API_KEY
-        else "<missing>"
-    )
+
+    # Mask API key for local providers
+    if backend in ("lmstudio", "ollama"):
+        key_preview = "<local-no-key-required>"
+    else:
+        key_preview = (
+            f"{config.LLM_API_KEY[:6]}..."
+            if config.LLM_API_KEY
+            else "<missing>"
+        )
+
     msg = (
-        f"Model Profile: {backend}\nLLM_MODEL: {config.LLM_MODEL}\nLLM_API_KEY: "
-        f"{key_preview}\nLLM_BASE_URL: {config.LLM_BASE_URL}"
+        f"Model Profile: {backend}\nLLM_MODEL: {config.LLM_MODEL}\n"
+        f"LLM_API_KEY: {key_preview}\nLLM_BASE_URL: {config.LLM_BASE_URL}"
     )
     logger.info(msg)
 
-    if backend in ("openai", "grok"):
+    # All backends use OpenAI-compatible client
+    if backend in ("openai", "grok", "lmstudio", "ollama"):
         logger.info(
-            "Using OpenAI Generic client for profile: %s", backend
+            "Using OpenAI-compatible client for profile: %s", backend
         )
         return OpenAIGenericClient(
             config=config, console=console, logger=logger
         )
 
-    raise ValueError(f"Unknown model profile '{backend}' specified.")
+    raise ValueError(
+        f"Unknown model profile '{backend}'. "
+        f"Choose from: openai, grok, lmstudio, ollama"
+    )

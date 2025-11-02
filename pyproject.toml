@@ -4,15 +4,15 @@ build-backend = "hatchling.build"
 
 [project]
 name = "gen-captions"
-version = "0.4.0"
-description = "Generate image captions with OpenAI or GROK"
+version = "0.5.0"
+description = "Generate image captions with OpenAI, GROK, LM Studio, or Ollama"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.14"
 authors = [
     { name = "Steve", email = "steve@example.com" }
 ]
-keywords = ["image", "captions", "openai", "grok", "ai", "vision"]
+keywords = ["image", "captions", "openai", "grok", "lmstudio", "ollama", "ai", "vision", "local"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",

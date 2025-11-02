@@ -55,6 +55,45 @@ backends:
       grok-vision-beta:
         description: "Early Release: Beta vision model, may have limitations"
 
+  lmstudio:
+    # LM Studio local server - ONE model at a time
+    # Start: LM Studio UI → Local Server tab → Start Server
+    # Default port: 1234
+    # No API key required (runs locally)
+    model: "qwen/qwen3-vl-8b"
+    base_url: http://localhost:1234/v1
+
+    # Available Models (descriptions shown in 'config show')
+    # Note: Only models YOU have downloaded will work
+    models:
+      qwen/qwen3-vl-8b:
+        description: "Vision-capable: Qwen3-VL 8B - Enhanced visual perception (up to 1M context)"
+      qwen/qwen2.5-vl-7b:
+        description: "Vision-capable: Qwen2.5-VL 7B - Dynamic resolution, OCR, chart parsing"
+      google/gemma-3-27b:
+        description: "Vision-capable: Google Gemma 3 27B - Multimodal (128K context, up to 8K output)"
+      mistralai/magistral-small-2509:
+        description: "Vision-capable: Mistral Magistral Small 24B - Reasoning with vision (128K)"
+
+  ollama:
+    # Ollama local server - ONE model at a time
+    # Start: ollama serve (usually auto-starts)
+    # Load model: ollama pull <model-name>
+    # Default port: 11434
+    # No API key required (runs locally)
+    model: "qwen2.5vl:7b"
+    base_url: http://localhost:11434/v1
+
+    # Available Models (descriptions shown in 'config show')
+    # Note: Only models YOU have pulled will work
+    models:
+      qwen2.5vl:7b:
+        description: "Vision-capable: Qwen2.5-VL 7B - Multimodal with dynamic resolution and OCR"
+      minicpm-o-2.6:latest:
+        description: "Vision-capable: MiniCPM-o 2.6 8B - End-to-end multimodal (vision + speech)"
+      openbmb/minicpm-o2.6:latest:
+        description: "Vision-capable: MiniCPM-o 2.6 8B - End-to-end multimodal (alternative name)"
+
 # Caption Generation Prompts
 # Customize these to change caption style and format
 caption:

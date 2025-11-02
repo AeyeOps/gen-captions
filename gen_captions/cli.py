@@ -293,17 +293,24 @@ def fix_encoding(
     )
 
 
-@app.command(help="Generate image captions with OpenAI or GROK.")
+@app.command(
+    help="Generate image captions using vision-capable AI models."
+)
 def generate(
     image_dir: str = typer.Option(..., help="Image directory."),
     caption_dir: str = typer.Option(
         ..., help="Captions directory for generated text."
     ),
     model_profile: str = typer.Option(
-        ..., help="Choose model profile: openai or grok."
+        ...,
+        help="Model profile: openai, grok, lmstudio, or ollama.",
     ),
 ):
-    """Generate image descriptions."""
+    """Generate image descriptions using cloud or local AI models.
+
+    Supports cloud providers (OpenAI, GROK) and local servers
+    (LM Studio, Ollama).
+    """
     print_system_info(console, logger)
 
     image_directory = (
@@ -313,15 +320,21 @@ def generate(
         os.path.abspath(caption_dir) if caption_dir else None
     )
 
-    if model_profile not in ["openai", "grok"]:
+    # Validate model profile
+    valid_profiles = ["openai", "grok", "lmstudio", "ollama"]
+    if model_profile.lower() not in valid_profiles:
         logger.error(
-            "Error: --model-profile must be either 'openai' or 'grok'."
+            f"Error: Invalid model profile '{model_profile}'. "
+            f"Choose from: {', '.join(valid_profiles)}"
         )
         raise typer.Exit(code=1)
+
     config.set_backend(model_profile)
 
-    if not config.LLM_API_KEY:
-        logger.error("LLM_API_KEY is not set in the environment")
+    # Verify API key for cloud providers only
+    if model_profile.lower() not in ("lmstudio", "ollama"):
+        if not config.LLM_API_KEY:
+            logger.error("LLM_API_KEY is not set in the environment")
     else:
         if not image_directory:
             logger.error(

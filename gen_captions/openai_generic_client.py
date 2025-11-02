@@ -69,6 +69,50 @@ MODEL_CONFIG = {
         "max_tokens_key": "max_tokens",
         "max_tokens_value": 200,
     },
+    # === LM Studio Models ===
+    "qwen/qwen3-vl-8b": {
+        "supports_system_role": True,
+        "supports_temperature": True,
+        "max_tokens_key": "max_tokens",
+        "max_tokens_value": 300,
+    },
+    "qwen/qwen2.5-vl-7b": {
+        "supports_system_role": True,
+        "supports_temperature": True,
+        "max_tokens_key": "max_tokens",
+        "max_tokens_value": 250,
+    },
+    "google/gemma-3-27b": {
+        "supports_system_role": True,
+        "supports_temperature": True,
+        "max_tokens_key": "max_tokens",
+        "max_tokens_value": 500,
+    },
+    "mistralai/magistral-small-2509": {
+        "supports_system_role": True,
+        "supports_temperature": True,
+        "max_tokens_key": "max_tokens",
+        "max_tokens_value": 250,
+    },
+    # === Ollama Models ===
+    "qwen2.5vl:7b": {
+        "supports_system_role": True,
+        "supports_temperature": True,
+        "max_tokens_key": "max_tokens",
+        "max_tokens_value": 250,
+    },
+    "minicpm-o-2.6:latest": {
+        "supports_system_role": True,
+        "supports_temperature": True,
+        "max_tokens_key": "max_tokens",
+        "max_tokens_value": 250,
+    },
+    "openbmb/minicpm-o2.6:latest": {
+        "supports_system_role": True,
+        "supports_temperature": True,
+        "max_tokens_key": "max_tokens",
+        "max_tokens_value": 250,
+    },
 }
 
 
