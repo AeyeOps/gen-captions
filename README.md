@@ -99,18 +99,18 @@ GETCAP_LOG_LEVEL=INFO
 uv run --python 3.14 gen-captions generate \
   --image-dir ./images \
   --caption-dir ./captions \
-  --llm-backend openai
+  --model-profile openai
 
 # Using GROK instead
 uv run --python 3.14 gen-captions generate \
   --image-dir ./images \
   --caption-dir ./captions \
-  --llm-backend grok
+  --model-profile grok
 ```
 
 **What happens:**
 - Scans `./images` for `.jpg`, `.jpeg`, `.png` files
-- Generates captions using the specified LLM backend
+- Generates captions using the specified model profile
 - Saves captions as `.txt` files in `./captions` directory
 - Skips images that already have caption files
 - Shows progress bar and detailed logging
@@ -137,13 +137,13 @@ Generate image captions using OpenAI or GROK models:
 uv run --python 3.14 gen-captions generate \
   --image-dir <path-to-images> \
   --caption-dir <output-directory> \
-  --llm-backend <openai|grok>
+  --model-profile <openai|grok>
 ```
 
 **Options:**
 - `--image-dir`: Directory containing source images (required)
 - `--caption-dir`: Directory for output caption files (required)
-- `--llm-backend`: LLM provider to use: `openai` or `grok` (required)
+- `--model-profile`: model profile to use: `openai` or `grok` (required)
 
 #### Fix Encoding Issues
 
@@ -180,7 +180,7 @@ The CLI loads environment variables in this order (first match wins):
 **Example: Override environment file location**
 ```bash
 export GEN_CAPTIONS_ENV_FILE=/path/to/production.env
-uv run --python 3.14 gen-captions generate --image-dir ./images --caption-dir ./captions --llm-backend openai
+uv run --python 3.14 gen-captions generate --image-dir ./images --caption-dir ./captions --model-profile openai
 ```
 
 ### Configuration Variables

@@ -1,9 +1,8 @@
-"""Factory method to get an LLM client based on the backend argument.
+"""Factory method to get an LLM client based on the model profile.
 
 To elaborate on the above code snippet, the get_llm_client function is a
-factory method that returns an LLM client based on the backend argument.
-The backend argument specifies the type of LLM (Language Model) backend
-to use, such as "openai" or "grok".
+factory method that returns an LLM client based on the model profile argument.
+The profile argument specifies which model profile to use, such as "openai" or "grok".
 """
 
 from logging import Logger
@@ -20,9 +19,9 @@ def get_llm_client(
     console: Console,
     logger: Logger,
 ):
-    """Get an LLM client based on the backend argument.
+    """Get an LLM client based on the model profile.
 
-    Depending on the backend param, it returns the corresponding LLM
+    Depending on the profile specified, returns the corresponding LLM
     client.
     """
     backend = backend.lower().strip()
@@ -33,17 +32,17 @@ def get_llm_client(
         else "<missing>"
     )
     msg = (
-        f"Backend: {backend}\nLLM_MODEL: {config.LLM_MODEL}\nLLM_API_KEY: "
+        f"Model Profile: {backend}\nLLM_MODEL: {config.LLM_MODEL}\nLLM_API_KEY: "
         f"{key_preview}\nLLM_BASE_URL: {config.LLM_BASE_URL}"
     )
     logger.info(msg)
 
     if backend in ("openai", "grok"):
         logger.info(
-            "Using OpenAI Generic backend for %s.", backend
+            "Using OpenAI Generic client for profile: %s", backend
         )
         return OpenAIGenericClient(
             config=config, console=console, logger=logger
         )
 
-    raise ValueError(f"Unknown backend '{backend}' specified.")
+    raise ValueError(f"Unknown model profile '{backend}' specified.")

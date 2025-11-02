@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "gen-captions"
-version = "0.3.0"
+version = "0.4.0"
 description = "Generate image captions with OpenAI or GROK"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -22,7 +22,7 @@ classifiers = [
 
 dependencies = [
     "openai>=1.68.0",
-    "python-dotenv>=1.0.1",
+    "pyyaml>=6.0.2",
     "requests>=2.32.0",
     "typer>=0.16.0",
     "concurrent-log-handler>=0.9.25",
@@ -64,6 +64,7 @@ packages = ["gen_captions"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "gen_captions/VERSION" = "gen_captions/VERSION"
+"gen_captions/default.yaml" = "gen_captions/default.yaml"
 
 [tool.black]
 line-length = 65

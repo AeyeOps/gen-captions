@@ -4,6 +4,125 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-11-02
+
+### Added
+
+* **YAML Configuration System**: Complete migration from environment variables to YAML-based configuration
+  * New `default.yaml` bundled with application containing vision model configurations
+  * User-customizable local config at `~/.config/gen-captions/config.yaml`
+  * Config discovery with search path: env override → user config → project config → working dir
+  * Vision model descriptions with recommendations (e.g., "RECOMMENDED: Cost-efficient GPT-5 with excellent vision capabilities")
+* **Config Command Group**: New `gen-captions config` subcommands for configuration management
+  * `config init` - Create local configuration template
+  * `config show [--backend]` - Display current configuration with syntax highlighting
+  * `config get <key>` - Retrieve specific config value using dot notation
+  * `config set-value <key> <value>` - Update local configuration
+  * `config path` - Show configuration file locations
+  * `config validate` - Validate configuration against schema
+  * `config reset [--force]` - Reset to default configuration
+* **Vision Model Updates (November 2025)**
+  * Added support for GPT-5 models (gpt-5-mini, gpt-5, gpt-5-nano)
+  * Added support for GROK vision models (grok-2-vision-1212, grok-vision-beta)
+  * Model-specific quirks now hardcoded in client for cleaner user experience
+* **New Configuration Components**
+  * `gen_captions/config_manager.py` - YAML file loading, merging, and validation
+  * `gen_captions/config_schema.py` - Configuration schema definitions and validation logic
+  * `gen_captions/default.yaml` - Default configuration with comprehensive documentation
+
+### Changed
+
+* **Breaking: Configuration Method**
+  * Removed `.env` file support and `python-dotenv` dependency
+  * Removed `gen-env` command (replaced by `config init`)
+  * Removed environment variable configuration for all settings except API keys
+  * API keys (`OPENAI_API_KEY`, `GROK_API_KEY`) remain environment-only for security
+* **Terminology Update**: `--llm-backend` renamed to `--model-profile` throughout codebase
+  * Updated CLI arguments, help text, error messages, and documentation
+  * Better terminology that resonates with users selecting vision model configurations
+* **Simplified Configuration**
+  * Removed internal model quirks from user-facing YAML configuration
+  * Model parameters (supports_system_role, max_tokens, etc.) moved to hardcoded dict in `openai_generic_client.py`
+  * Configuration now focused on user-relevant settings: model selection, prompts, processing settings
+* **Default Models Updated**
+  * OpenAI: `gpt-4o-mini` → `gpt-5-mini` (cost-efficient GPT-5 with vision)
+  * GROK: `grok-4` → `grok-2-vision-1212` (latest vision model with 32K context)
+* **Refactored Configuration Classes**
+  * `Config` class now uses `ConfigManager` for YAML loading
+  * Removed deprecated environment variable fallbacks
+  * Cleaner property accessors for config values
+* **Documentation Updates**
+  * `CLAUDE.md` - Updated with YAML configuration examples and new workflow
+  * `README.md` - Replaced `.env` examples with YAML configuration
+  * `AGENTS.md` - Updated command examples with `--model-profile`
+* **PyInstaller Build**
+  * Updated spec file to bundle `default.yaml` with binary
+  * Added PyYAML to hidden imports
+  * Removed dotenv from build dependencies
+
+### Removed
+
+* **Backward Compatibility Code**
+  * Removed all environment variable fallbacks for configuration settings
+  * Removed deprecation warnings system
+  * Removed `_load_environment()` function and dotenv discovery logic
+  * Removed `gen-env` command entirely
+* **Dependencies**
+  * Removed `python-dotenv` (no longer needed)
+* **Deprecated Environment Variables**
+  * `GETCAP_THREAD_POOL` → YAML: `processing.thread_pool`
+  * `GETCAP_THROTTLE_SUBMISSION_RATE` → YAML: `processing.throttle_submission_rate`
+  * `GETCAP_THROTTLE_RETRIES` → YAML: `processing.throttle_retries`
+  * `GETCAP_THROTTLE_BACKOFF_FACTOR` → YAML: `processing.throttle_backoff_factor`
+  * `GETCAP_LOG_LEVEL` → YAML: `processing.log_level`
+  * `OPENAI_MODEL` / `GROK_MODEL` → YAML: `backends.<profile>.model`
+  * `OPENAI_BASE_URL` / `GROK_BASE_URL` → YAML: `backends.<profile>.base_url`
+
+### Fixed
+
+* GROK vision model support - Default changed from non-vision `grok-4` to vision-capable `grok-2-vision-1212`
+* Configuration validation with clear error messages for invalid YAML
+* Prompt formatting - Removed extra newlines in YAML multi-line strings
+
+## [0.3.0] - 2025-10-28
+
+### Added
+
+* **PyInstaller Binary Build Support**
+  * New `gen_captions.spec` for creating standalone executables
+  * Makefile `build` target for automated binary creation
+  * Binary includes bundled VERSION file and all dependencies
+  * Single-file executable output with UPX compression
+* **Expanded Model Support**
+  * Added model-specific quirk handling for o1-mini, o3-mini
+  * Dynamic request parameter building based on model capabilities
+  * Support for models with different parameter requirements
+* **Enhanced Build System**
+  * Updated `pyproject.toml` with hatchling build backend
+  * Force-include mechanism for VERSION file in wheel distribution
+  * Comprehensive dependency specifications with version pinning
+
+### Changed
+
+* **Project Structure Reorganization**
+  * Moved from pants-based build to uv-based dependency management
+  * Updated Python requirement to >=3.14
+  * Consolidated dependencies in pyproject.toml
+* **Improved Error Handling**
+  * Better API key validation and error messages
+  * Graceful handling of missing configuration
+  * Detailed logging for model selection and parameters
+* **Documentation**
+  * Updated README with binary build instructions
+  * Added CLAUDE.md with development workflow documentation
+  * Improved inline code documentation
+
+### Fixed
+
+* Model parameter compatibility issues with different OpenAI models
+* VERSION file bundling in PyInstaller binary
+* Configuration defaults for missing environment variables
+
 ## [0.2.3] - 2025-02-20
 
 ### Added

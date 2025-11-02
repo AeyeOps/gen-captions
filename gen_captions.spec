@@ -20,6 +20,8 @@ gen_captions_pkg = project_root / 'gen_captions'
 datas = [
     # Include the VERSION file (critical for application)
     (str(gen_captions_pkg / 'VERSION'), 'gen_captions'),
+    # Include default configuration file
+    (str(gen_captions_pkg / 'default.yaml'), 'gen_captions'),
 ]
 
 # Hidden imports that PyInstaller might miss
@@ -29,7 +31,7 @@ hiddenimports = [
     'rich.console',
     'rich.progress',
     'rich.table',
-    'dotenv',
+    'yaml',
     'openai',
     'concurrent_log_handler',
     'requests',

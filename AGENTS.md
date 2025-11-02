@@ -5,7 +5,7 @@ The core package lives in `gen_captions/`, with `cli.py` exposing the CLI, `imag
 
 ## Build, Test, and Development Commands
 - `uv run gen-captions --help` – view CLI usage and available commands
-- `uv run gen-captions generate --image-dir ./images --caption-dir ./captions --llm-backend openai` – generate captions for images
+- `uv run gen-captions generate --image-dir ./images --caption-dir ./captions --model-profile openai` – generate captions for images
 - `uv run pytest` – run the full test suite with coverage
 - `uv run pytest tests/unit/` – run only unit tests
 - `uv run ruff check .` – run linter checks

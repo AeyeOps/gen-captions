@@ -6,6 +6,6 @@ Feature: Generate image captions
   Scenario: Captions are generated successfully
     Given I have a directory of images in "test_images/"
     And I have set the environment variable "OPENAI_API_KEY" to "fake-key"
-    When I run the CLI command "get-captions generate --image-dir test_images --caption-dir output --llm-backend openai"
+    When I run the CLI command "get-captions generate --image-dir test_images --caption-dir output --model-profile openai"
     Then a text file should be created in "output" for each image
     And each text file should contain "[trigger]"

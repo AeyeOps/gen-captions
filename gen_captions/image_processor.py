@@ -1,4 +1,4 @@
-"""Module for processing images and generating captions using LLM backend."""
+"""Module for processing images and generating captions using model profiles."""
 
 import os
 import time
@@ -24,7 +24,7 @@ def process_images(
 ):
     """Process images in the directory and generate descriptions.
 
-    Descriptions are generated using the specified LLM backend and saved
+    Descriptions are generated using the specified model profile and saved
     to the caption directory.
     """
     # pylint: disable=too-many-arguments,too-many-locals
@@ -32,11 +32,11 @@ def process_images(
     # pylint: disable=broad-except,duplicate-code
     # Provide a visible console message to indicate start
     console.print(
-        f"[bold green]Starting to process images with LLM backend: "
+        f"[bold green]Starting to process images with model profile: "
         f"{backend}[/]"
     )
     logger.info(
-        "Starting to process images with LLM backend: %s",
+        "Starting to process images with model profile: %s",
         backend,
     )
 

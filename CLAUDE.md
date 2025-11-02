@@ -28,7 +28,7 @@ uv run gen-captions --help
 uv run gen-captions generate \
   --image-dir ./images \
   --caption-dir ./captions \
-  --llm-backend openai
+  --model-profile openai
 
 # Fix text encoding issues
 uv run gen-captions fix-encoding \

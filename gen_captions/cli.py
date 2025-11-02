@@ -1,10 +1,8 @@
 """Command-line interface for the caption generator."""
 
 import os
-from pathlib import Path
 
 import typer
-from dotenv import dotenv_values, find_dotenv, load_dotenv
 from rich.console import Console
 
 from .config import Config
@@ -13,56 +11,12 @@ from .image_processor import process_images
 from .logger_config import CustomLogger
 from .system_info import print_system_info
 
-
-def _load_environment() -> Path | None:
-    """Load environment variables from disk if a file is available.
-
-    Respect an explicit ``GEN_CAPTIONS_ENV_FILE`` hint, fall back to a
-    discoverable ``.env`` near the working directory, and quietly skip
-    loading when no file exists so that imports succeed in hermetic test
-    sandboxes.
-    """
-    env_hint = os.getenv("GEN_CAPTIONS_ENV_FILE")
-    candidate_paths = []
-
-    if env_hint:
-        candidate_paths.append(Path(env_hint).expanduser())
-
-    discovered = find_dotenv(
-        usecwd=True, raise_error_if_not_found=False
-    )
-    if discovered:
-        candidate_paths.append(Path(discovered))
-    else:
-        candidate_paths.append(Path(".env"))
-
-    for candidate in candidate_paths:
-        if candidate and candidate.is_file():
-            load_dotenv(
-                dotenv_path=str(candidate),
-                override=False,
-                verbose=False,
-                encoding="utf-8",
-            )
-            return candidate
-
-    # Fall back to dotenv's default search which safely no-ops when absent.
-    load_dotenv(override=False, encoding="utf-8")
-    return None
-
-
-ENV_FILE = _load_environment()
-
+# Module-level initialization
 console = Console()
 config = Config()
 logger = CustomLogger(
     console=console, name="gen_captions", level=config.LOG_LEVEL
 ).logger
-
-if ENV_FILE:
-    logger.debug(
-        "Loaded environment variables from %s", ENV_FILE
-    )
 
 app = typer.Typer(
     help=f"Caption Generator v{config.VERSION} - "
@@ -79,56 +33,229 @@ def main(ctx: typer.Context):
         raise typer.Exit()
 
 
-@app.command(help="Generate an environment file.")
-def gen_env():
-    """Generate a .env-like file with environment variables.
-
-    If .env exists, create .env1, if that exists, create .env2, and so
-    on. Populate with values from any existing .env if present, or use
-    defaults.
-    """
-    env_keys = [
-        "OPENAI_API_KEY",
-        "OPENAI_MODEL",
-        "OPENAI_BASE_URL",
-        "GROK_API_KEY",
-        "GROK_MODEL",
-        "GROK_BASE_URL",
-        "GETCAP_THREAD_POOL",
-        "GETCAP_THROTTLE_SUBMISSION_RATE",
-        "GETCAP_THROTTLE_RETRIES",
-        "GETCAP_THROTTLE_BACKOFF_FACTOR",
-        "GETCAP_LOG_LEVEL",
-    ]
-
-    existing = {}
-    base_env_file = Path(".env")
-    if base_env_file.exists():
-        existing = dotenv_values(dotenv_path=str(base_env_file))
-
-    # Find a new file name that doesn't overwrite anything
-    counter = 0
-    new_file = Path(".env")
-    while new_file.exists():
-        counter += 1
-        new_file = Path(f".env{counter}")
-
-    # Write to the new file
-    with new_file.open("w", encoding="utf-8") as wf:
-        for key in env_keys:
-            # Use existing value if present;
-            # else fallback to a placeholder or default
-            wf.write(f"{key}={existing.get(key, '')}\n")
-
-    console.print(
-        f"Created {new_file} with collected environment variables."
-    )
-
-
 @app.command(help="Show the current version.")
 def version():
     """Display the application version."""
     console.print(f"Caption Generator v{config.VERSION}")
+
+
+# Config command group
+config_app = typer.Typer(
+    help="Manage YAML configuration files"
+)
+app.add_typer(config_app, name="config")
+
+
+@config_app.command(
+    help="Initialize a new local configuration file"
+)
+def init(
+    path: str = typer.Option(
+        None,
+        help="Output path for config file",
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Overwrite existing file",
+    ),
+):
+    """Initialize a new local configuration file."""
+    from pathlib import Path
+
+    from .config_manager import ConfigManager
+
+    manager = ConfigManager(console)
+
+    output_path = (
+        Path(path) if path else manager.CONFIG_SEARCH_PATHS[0]
+    )
+
+    if output_path.exists() and not force:
+        console.print(
+            f"[yellow]Config file already exists:[/] "
+            f"{output_path}"
+        )
+        console.print("Use --force to overwrite")
+        raise typer.Exit(code=1)
+
+    created_path = manager.create_local_config_template(
+        output_path
+    )
+    console.print(
+        f"[green]Created configuration file:[/] "
+        f"{created_path}"
+    )
+    console.print(
+        "\n[bold]Next steps:[/]"
+        "\n1. Edit the file to customize settings"
+        "\n2. Remove sections you don't want to override"
+        "\n3. Set API keys as environment variables:\n"
+        "   export OPENAI_API_KEY=sk-..."
+        "   export GROK_API_KEY=xai-..."
+    )
+
+
+@config_app.command(help="Show current configuration")
+def show(
+    backend: str = typer.Option(
+        None,
+        help="Show config for specific backend",
+    ),
+):
+    """Display current merged configuration."""
+    import yaml
+    from rich.syntax import Syntax
+
+    config_dict = config._yaml_config
+
+    if backend:
+        backends = config_dict.get("backends", {})
+        if backend not in backends:
+            console.print(
+                f"[red]Unknown backend:[/] {backend}"
+            )
+            raise typer.Exit(code=1)
+        config_dict = {backend: backends[backend]}
+
+    # Pretty print as YAML
+    yaml_str = yaml.dump(
+        config_dict,
+        default_flow_style=False,
+        sort_keys=False,
+    )
+    syntax = Syntax(
+        yaml_str, "yaml", theme="monokai", line_numbers=True
+    )
+    console.print(syntax)
+
+
+@config_app.command(help="Get a configuration value")
+def get(
+    key: str = typer.Argument(
+        ...,
+        help="Configuration key (dot notation: "
+        "processing.log_level)",
+    ),
+):
+    """Get a specific configuration value."""
+    keys = key.split(".")
+    value = config._yaml_config
+
+    try:
+        for k in keys:
+            value = value[k]
+        console.print(f"[cyan]{key}:[/] {value}")
+    except (KeyError, TypeError):
+        console.print(f"[red]Key not found:[/] {key}")
+        raise typer.Exit(code=1)
+
+
+@config_app.command(help="Set a configuration value")
+def set_value(
+    key: str = typer.Argument(
+        ..., help="Configuration key (dot notation)"
+    ),
+    value: str = typer.Argument(..., help="Value to set"),
+):
+    """Set a configuration value in local config."""
+    from .config_manager import ConfigManager
+
+    console.print(
+        "[yellow]Note:[/] This modifies your local "
+        "config file"
+    )
+
+    manager = ConfigManager(console)
+
+    try:
+        manager.set_config_value(key, value)
+        console.print(f"[green]Updated:[/] {key} = {value}")
+    except FileNotFoundError as e:
+        console.print(f"[red]Error:[/] {e}")
+        console.print(
+            "Run [cyan]gen-captions config init[/] first"
+        )
+        raise typer.Exit(code=1)
+    except Exception as e:
+        console.print(f"[red]Error:[/] {e}")
+        raise typer.Exit(code=1)
+
+
+@config_app.command(help="Show config file paths")
+def path():
+    """Show the active configuration file paths."""
+    from .config_manager import ConfigManager
+
+    manager = ConfigManager(console)
+
+    console.print("[bold]Default config:[/]")
+    console.print(f"  {manager.get_default_config_path()}")
+
+    local = manager.find_local_config()
+    console.print("\n[bold]Local config:[/]")
+    if local:
+        console.print(f"  {local}")
+    else:
+        console.print("  (none found)")
+
+    console.print("\n[bold]Search paths:[/]")
+    for p in manager.CONFIG_SEARCH_PATHS:
+        exists = "✓" if p.exists() else "✗"
+        console.print(f"  {exists} {p}")
+
+
+@config_app.command(help="Validate configuration")
+def validate():
+    """Validate the current configuration."""
+    from .config_manager import ConfigManager
+
+    manager = ConfigManager(console)
+    config_dict = manager.get_config()
+    errors = manager.validate_config(config_dict)
+
+    if not errors:
+        console.print("[green]✓ Configuration is valid[/]")
+    else:
+        console.print(
+            "[red]✗ Configuration validation failed:[/]"
+        )
+        for error in errors:
+            console.print(f"  - {error}")
+        raise typer.Exit(code=1)
+
+
+@config_app.command(help="Reset to default configuration")
+def reset(
+    force: bool = typer.Option(
+        False,
+        "--force",
+        "-f",
+        help="Skip confirmation",
+    ),
+):
+    """Reset local configuration to defaults."""
+    from .config_manager import ConfigManager
+
+    manager = ConfigManager(console)
+    local_path = manager.find_local_config()
+
+    if not local_path:
+        console.print("[yellow]No local config to reset[/]")
+        return
+
+    if not force:
+        confirm = typer.confirm(
+            f"Delete {local_path} and reset to defaults?"
+        )
+        if not confirm:
+            console.print("Cancelled")
+            raise typer.Exit()
+
+    local_path.unlink()
+    console.print(f"[green]Deleted:[/] {local_path}")
+    console.print("Now using default configuration")
 
 
 @app.command(help="Fix encoding issues in text files.")
@@ -172,8 +299,8 @@ def generate(
     caption_dir: str = typer.Option(
         ..., help="Captions directory for generated text."
     ),
-    llm_backend: str = typer.Option(
-        ..., help="Choose LLM backend: openai or grok."
+    model_profile: str = typer.Option(
+        ..., help="Choose model profile: openai or grok."
     ),
 ):
     """Generate image descriptions."""
@@ -186,12 +313,12 @@ def generate(
         os.path.abspath(caption_dir) if caption_dir else None
     )
 
-    if llm_backend not in ["openai", "grok"]:
+    if model_profile not in ["openai", "grok"]:
         logger.error(
-            "Error: --llm-backend must be either 'openai' or 'grok'."
+            "Error: --model-profile must be either 'openai' or 'grok'."
         )
         raise typer.Exit(code=1)
-    config.set_backend(llm_backend)
+    config.set_backend(model_profile)
 
     if not config.LLM_API_KEY:
         logger.error("LLM_API_KEY is not set in the environment")
@@ -205,11 +332,11 @@ def generate(
         if caption_directory:
             os.makedirs(caption_directory, exist_ok=True)
 
-        # Pass the chosen backend to the process_images function
+        # Pass the chosen profile to the process_images function
         process_images(
             image_directory,
             caption_directory,
-            backend=llm_backend,
+            backend=model_profile,
             config=config,
             console=console,
             logger=logger,

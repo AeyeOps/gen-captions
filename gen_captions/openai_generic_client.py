@@ -12,7 +12,8 @@ from rich.console import Console
 from .config import Config
 from .utils import encode_image
 
-# Example dictionary capturing different model quirks
+# Model-specific quirks and parameter requirements
+# This dict captures how different models handle API parameters
 MODEL_CONFIG = {
     "o1-mini": {
         "supports_system_role": False,
@@ -26,7 +27,48 @@ MODEL_CONFIG = {
         "max_tokens_key": "max_tokens",
         "max_tokens_value": 200,
     },
-    # Add more models here with their own rules
+    "gpt-5-mini": {
+        "supports_system_role": True,
+        "supports_temperature": True,
+        "max_tokens_key": "max_completion_tokens",
+        "max_tokens_value": 300,
+    },
+    "gpt-5": {
+        "supports_system_role": True,
+        "supports_temperature": True,
+        "max_tokens_key": "max_completion_tokens",
+        "max_tokens_value": 300,
+    },
+    "gpt-5-nano": {
+        "supports_system_role": True,
+        "supports_temperature": True,
+        "max_tokens_key": "max_completion_tokens",
+        "max_tokens_value": 200,
+    },
+    "gpt-4o-mini": {
+        "supports_system_role": True,
+        "supports_temperature": True,
+        "max_tokens_key": "max_completion_tokens",
+        "max_tokens_value": 200,
+    },
+    "gpt-4o": {
+        "supports_system_role": True,
+        "supports_temperature": True,
+        "max_tokens_key": "max_completion_tokens",
+        "max_tokens_value": 200,
+    },
+    "grok-2-vision-1212": {
+        "supports_system_role": True,
+        "supports_temperature": True,
+        "max_tokens_key": "max_tokens",
+        "max_tokens_value": 250,
+    },
+    "grok-vision-beta": {
+        "supports_system_role": True,
+        "supports_temperature": True,
+        "max_tokens_key": "max_tokens",
+        "max_tokens_value": 200,
+    },
 }
 
 
@@ -38,31 +80,18 @@ class OpenAIGenericClient:
     def __init__(
         self, config: Config, console: Console, logger: Logger
     ):
-        """Initialize the OpenAI client with the API key and base URL."""
-        fallback_model = config.DEFAULT_MODELS.get(
-            "OPENAI", "gpt-4o-mini"
-        )
-        if not config.LLM_MODEL:
-            logger.warning(
-                "LLM_MODEL is not configured; defaulting to %s",
-                fallback_model,
-            )
-            config._config["LLM_MODEL"] = fallback_model
-
-        if not config.LLM_BASE_URL:
-            default_base = config.DEFAULT_BASE_URLS.get(
-                "OPENAI", "https://api.openai.com/v1"
-            )
-            logger.debug(
-                "LLM_BASE_URL missing; defaulting to %s",
-                default_base,
-            )
-            config._config["LLM_BASE_URL"] = default_base
-
+        """Initialize the OpenAI client with API key and URL."""
         if not config.LLM_API_KEY:
             logger.error(
-                "LLM_API_KEY is not set. Requests to the OpenAI API will fail."
+                "LLM_API_KEY is not set. "
+                "Requests to the API will fail."
             )
+
+        if not config.LLM_MODEL:
+            logger.warning("LLM_MODEL is not configured")
+
+        if not config.LLM_BASE_URL:
+            logger.warning("LLM_BASE_URL is not configured")
 
         self._client = openai.OpenAI(
             api_key=config.LLM_API_KEY,
@@ -209,60 +238,25 @@ class OpenAIGenericClient:
         return ""
 
     def _build_chat_request(self, base64_image: str) -> dict:
-        """Build request parameters while applying model-specific quirks."""
+        """Build request parameters with model quirks."""
         model_name = self._config.LLM_MODEL.strip().lower()
+
+        # Get model quirks from hardcoded config
         model_quirks = MODEL_CONFIG.get(model_name, {})
 
-        # Base content for "system" and "user" roles
-        system_content = """
-You are an expert at generating detailed and
-accurate stability diffusion type prompts. You
-emphasize photo realism and accuracy in your captions.
-"""
-        user_prompt = """
-Describe the content of this image as a
-detailed and accurate caption for a stable diffusion model
-prompt and begin the response with one of two opening
-lines based on the gender of the person in the image.
-The caption should be short, concise and accurate,
-and should not contain any information not immediately
-descriptive of the image. Avoid all words with single
-quotes, double quotes, or any other special characters.
-
-If the person is woman, start the response with:
-[trigger], a woman,
-
-If the person is a man, start the response with:
-[trigger], a man,
-"""
+        # Get caption prompts from YAML
+        caption_config = self._config.get_caption_config()
+        system_content = caption_config.get(
+            "system_prompt", ""
+        ).strip()
+        user_prompt = caption_config.get(
+            "user_prompt", ""
+        ).strip()
 
         # Default request params
         request_params = {"model": self._config.LLM_MODEL}
 
-        # If model not in dictionary, assume a "normal" model
-        # supporting system role, temperature, max_completion_tokens, etc.
-        if not model_quirks:
-            messages = [
-                {"role": "system", "content": system_content},
-                {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": user_prompt},
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/jpeg;base64,{base64_image}"
-                            },
-                        },
-                    ],
-                },
-            ]
-            request_params["messages"] = messages
-            request_params["temperature"] = 0.1
-            request_params["max_completion_tokens"] = 200
-            return request_params
-
-        # If we do have quirks
+        # Get model quirks (defaults for unknown models)
         supports_system = model_quirks.get(
             "supports_system_role", True
         )

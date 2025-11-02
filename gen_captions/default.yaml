@@ -1,0 +1,85 @@
+# gen-captions Default Configuration
+# Version: 1.0
+# Documentation: https://github.com/AeyeOps/gen-captions
+
+config_version: "1.0"
+
+# ============================================================
+# VISION MODELS (November 2025)
+# ============================================================
+#
+# Only vision-capable models are listed here.
+#
+# OpenAI Models:
+#   - gpt-5-mini (recommended - cost efficient)
+#   - gpt-5 (advanced reasoning)
+#   - gpt-4o-mini (previous generation, cost efficient)
+#   - gpt-4o (previous generation)
+#
+# X.AI/GROK Models:
+#   - grok-2-vision-1212 (recommended - 32K context)
+#   - grok-vision-beta (early release)
+#
+# IMPORTANT: Set API keys via environment variables:
+#   export OPENAI_API_KEY=sk-...
+#   export GROK_API_KEY=xai-...
+# ============================================================
+
+# Backend Configuration
+backends:
+  openai:
+    # Default model (change to gpt-5, gpt-4o, gpt-4o-mini as needed)
+    model: gpt-5-mini
+    base_url: https://api.openai.com/v1
+
+    # Available Models (descriptions shown in 'config show')
+    models:
+      gpt-5-mini:
+        description: "RECOMMENDED: Cost-efficient GPT-5 with excellent vision capabilities"
+      gpt-5:
+        description: "Premium: Advanced reasoning and superior vision understanding"
+      gpt-4o-mini:
+        description: "Budget: Previous generation, good for basic captions"
+      gpt-4o:
+        description: "Standard: Previous generation, balanced performance"
+
+  grok:
+    # Default model (change to grok-vision-beta if needed)
+    model: grok-2-vision-1212
+    base_url: https://api.x.ai/v1
+
+    # Available Models (descriptions shown in 'config show')
+    models:
+      grok-2-vision-1212:
+        description: "RECOMMENDED: Latest vision model with 32K context window"
+      grok-vision-beta:
+        description: "Early Release: Beta vision model, may have limitations"
+
+# Caption Generation Prompts
+# Customize these to change caption style and format
+caption:
+  # Required token - all captions must include this or they're rejected
+  required_token: "[trigger]"
+
+  # System prompt: Sets the LLM's role and behavior
+  system_prompt: "You are an expert at generating detailed and accurate stability diffusion type prompts. You emphasize photo realism and accuracy in your captions."
+
+  # User prompt: Instructions for each image
+  user_prompt: "Describe the content of this image as a detailed and accurate caption for a stable diffusion model prompt and begin the response with one of two opening lines based on the gender of the person in the image. The caption should be short, concise and accurate, and should not contain any information not immediately descriptive of the image. Avoid all words with single quotes, double quotes, or any other special characters.\n\nIf the person is woman, start the response with:\n[trigger], a woman,\n\nIf the person is a man, start the response with:\n[trigger], a man,"
+
+# Processing Configuration
+processing:
+  # Number of concurrent worker threads for image processing
+  thread_pool: 10
+
+  # Rate limiting: tasks submitted per second
+  throttle_submission_rate: 1.0
+
+  # Maximum retry attempts for failed API calls
+  throttle_retries: 10
+
+  # Exponential backoff multiplier for retries
+  throttle_backoff_factor: 2.0
+
+  # Logging level (DEBUG|INFO|WARNING|ERROR|CRITICAL)
+  log_level: INFO

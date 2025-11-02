@@ -2,7 +2,7 @@
 
 # Default target
 help:
-	@echo "gen-captions v0.3.0 - Makefile targets"
+	@echo "gen-captions v0.4.0 - Makefile targets"
 	@echo ""
 	@echo "Setup & Dependencies:"
 	@echo "  make sync        - Sync dependencies with uv"
