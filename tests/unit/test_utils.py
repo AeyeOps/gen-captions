@@ -16,7 +16,7 @@ def test_prompt_exists():
 def test_encode_image():
     with tempfile.NamedTemporaryFile(suffix=".jpg") as tmpfile:
         tmpfile.write(
-            b"\xFF\xD8\xFF\xE0"
+            b"\xff\xd8\xff\xe0"
         )  # Minimal JPEG header bytes
         tmpfile.flush()
         encoded = encode_image(tmpfile.name)

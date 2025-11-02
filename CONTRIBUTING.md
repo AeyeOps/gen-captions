@@ -8,7 +8,7 @@ Thank you for considering contributing to the Image Caption Generator! We welcom
 2. **Clone your fork** to your local machine:
 
    ```bash
-   git clone https://github.com/yourusername/image-caption-generator.git
+   git clone https://github.com/AeyeOps/gen-captions
    ```
 
 3. **Create a new branch** for your feature or bug fix:

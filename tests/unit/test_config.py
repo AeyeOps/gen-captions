@@ -1,4 +1,5 @@
 """Module for testing default configuration settings."""
+
 from gen_captions.config import Config
 
 

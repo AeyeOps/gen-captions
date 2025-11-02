@@ -20,10 +20,11 @@ class Config:
 
         self.DEFAULT_MODELS = {
             "OPENAI": "gpt-4o-mini",
-            "GROK": "grok-beta",
+            "GROK": "grok-4",
         }
         self.DEFAULT_BASE_URLS = {
             "OPENAI": "https://api.openai.com/v1",
+            "GROK": "https://api.x.ai/v1",
         }
 
         self._config = {

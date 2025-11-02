@@ -25,3 +25,10 @@ def test_cli_gen_env(tmp_path, monkeypatch):
         "Created .env1" in result.output
         or "Created .env" in result.output
     )
+
+
+def test_cli_version():
+    """Test 'gen_captions version' command."""
+    result = runner.invoke(app, ["version"])
+    assert result.exit_code == 0
+    assert "Caption Generator v" in result.output

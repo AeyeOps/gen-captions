@@ -39,7 +39,9 @@ class OpenAIGenericClient:
         self, config: Config, console: Console, logger: Logger
     ):
         """Initialize the OpenAI client with the API key and base URL."""
-        fallback_model = config.DEFAULT_MODELS.get("OPENAI", "gpt-4o-mini")
+        fallback_model = config.DEFAULT_MODELS.get(
+            "OPENAI", "gpt-4o-mini"
+        )
         if not config.LLM_MODEL:
             logger.warning(
                 "LLM_MODEL is not configured; defaulting to %s",
@@ -104,7 +106,7 @@ class OpenAIGenericClient:
                     and response.choices[0].message
                     and response.choices[0].message.content
                 ):
-                    description = response.choices[
+                    description: str = response.choices[
                         0
                     ].message.content.strip()
 
@@ -213,25 +215,25 @@ class OpenAIGenericClient:
 
         # Base content for "system" and "user" roles
         system_content = """
-You are an expert at generating detailed and 
-accurate stability diffusion type prompts. You 
+You are an expert at generating detailed and
+accurate stability diffusion type prompts. You
 emphasize photo realism and accuracy in your captions.
 """
         user_prompt = """
-Describe the content of this image as a 
+Describe the content of this image as a
 detailed and accurate caption for a stable diffusion model
 prompt and begin the response with one of two opening
-lines based on the gender of the person in the image. 
-The caption should be short, concise and accurate, 
-and should not contain any information not immediately 
-descriptive of the image. Avoid all words with single 
+lines based on the gender of the person in the image.
+The caption should be short, concise and accurate,
+and should not contain any information not immediately
+descriptive of the image. Avoid all words with single
 quotes, double quotes, or any other special characters.
 
-If the person is woman, start the response with: 
-[trigger], a woman, 
+If the person is woman, start the response with:
+[trigger], a woman,
 
 If the person is a man, start the response with:
-[trigger], a man, 
+[trigger], a man,
 """
 
         # Default request params

@@ -30,7 +30,6 @@ MANIFEST
 #  Usually these files are written by a python script from a template
 #  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
-*.spec
 
 # Installer logs
 pip-log.txt
@@ -163,7 +162,22 @@ cython_debug/
 .env
 .env.local
 **/*.out
-/.pants.d
-/dist/
 
+# uv
+.venv/
+__pypackages__/
+*.pyc
+.uv/
+
+# Old Pants build system (migrated to uv)
+.pants.d/
+BUILD
+
+# Obsolete files to delete
+/to-delete/
+
+# Application lock files
 .__gen_captions.lock
+
+# Application log files
+*.log

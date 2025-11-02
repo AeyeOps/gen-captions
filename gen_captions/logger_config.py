@@ -44,10 +44,11 @@ class CustomLogFormatter(logging.Formatter):
 
     def format(self, record):
         """Format the log record with timestamp, process, thread, and scope."""
+        message = record.getMessage()
         return (
             f"[{record.date_time}][0x{record.process:04x}]"
             f"[0x{record.thread:04x}][{record.levelname:>8}]"
-            f"[{record.module}::{record.funcName}] {record.msg}"
+            f"[{record.module}::{record.funcName}] {message}"
         )
 
 

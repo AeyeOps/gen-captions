@@ -2,18 +2,6 @@
 	"folders": [
 		{
 			"path": "."
-		},
-		{
-			"path": "../images"
-		},
-		{
-			"path": "../ai-toolkit/config"
-		},
-		{
-			"path": "../../home/steve/.cache/pants/lmdb_store"
-		},
-		{
-			"path": "../pants-plugins"
 		}
 	],
 	"settings": {}

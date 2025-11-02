@@ -125,6 +125,12 @@ def gen_env():
     )
 
 
+@app.command(help="Show the current version.")
+def version():
+    """Display the application version."""
+    console.print(f"Caption Generator v{config.VERSION}")
+
+
 @app.command(help="Fix encoding issues in text files.")
 def fix_encoding(
     caption_dir: str = typer.Option(

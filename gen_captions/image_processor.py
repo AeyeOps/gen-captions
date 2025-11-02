@@ -28,7 +28,8 @@ def process_images(
     to the caption directory.
     """
     # pylint: disable=too-many-arguments,too-many-locals
-    # pylint: disable=too-many-branches,too-many-statements,broad-except,duplicate-code
+    # pylint: disable=too-many-branches,too-many-statements
+    # pylint: disable=broad-except,duplicate-code
     # Provide a visible console message to indicate start
     console.print(
         f"[bold green]Starting to process images with LLM backend: "

@@ -1,0 +1,100 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "gen-captions"
+version = "0.3.0"
+description = "Generate image captions with OpenAI or GROK"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.14"
+authors = [
+    { name = "Steve", email = "steve@example.com" }
+]
+keywords = ["image", "captions", "openai", "grok", "ai", "vision"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.14",
+]
+
+dependencies = [
+    "openai>=1.68.0",
+    "python-dotenv>=1.0.1",
+    "requests>=2.32.0",
+    "typer>=0.16.0",
+    "concurrent-log-handler>=0.9.25",
+    "rich>=13.9.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-cov>=6.0.0",
+    "flake8>=7.1.0",
+    "black>=24.10.0",
+    "mypy>=1.13.0",
+    "isort>=5.13.0",
+    "ruff>=0.8.0",
+    "urllib3>=2.2.0",
+    "types-requests>=2.32.0",
+    "behave>=1.2.6",
+    "pyinstaller>=6.11.0",
+    # "pytype>=2024.10.11",  # Not yet compatible with Python 3.14
+]
+
+test = [
+    "torch>=2.0.0",
+    "transformers>=4.30.0",
+    "Pillow>=10.0.0",
+    "numpy>=1.24.0",
+]
+
+all = [
+    "gen-captions[dev,test]",
+]
+
+[project.scripts]
+gen-captions = "gen_captions.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["gen_captions"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"gen_captions/VERSION" = "gen_captions/VERSION"
+
+[tool.black]
+line-length = 65
+target-version = ['py314']
+
+[tool.isort]
+profile = "black"
+line_length = 65
+
+[tool.mypy]
+python_version = "3.14"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "--cov=gen_captions --cov-report=html --cov-report=term-missing"
+
+[tool.coverage.run]
+source = ["gen_captions"]
+omit = ["*/tests/*", "*/test_*.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]

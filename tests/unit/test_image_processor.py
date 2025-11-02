@@ -31,7 +31,7 @@ def test_process_images(mock_get_llm_client):
         # Create a fake image
         img_path = os.path.join(img_dir, "test.jpg")
         with open(img_path, "wb") as f:
-            f.write(b"\xFF\xD8\xFF\xE0")  # minimal JPEG header
+            f.write(b"\xff\xd8\xff\xe0")  # minimal JPEG header
 
         config = Config()
         process_images(
