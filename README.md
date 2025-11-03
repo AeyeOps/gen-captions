@@ -1,23 +1,21 @@
 # Image Caption Generator
 
-Generate detailed captions for image datasets using OpenAI-compatible models with rich logging, retry handling, and CLI utilities.
+Generate detailed captions for image datasets using OpenAI-compatible vision models with rich logging, configurable pipelines, and dataset hygiene utilities.
 
-**Version:** 0.5.1
+**Version:** 0.5.2
 **Python:** 3.14+
 **License:** MIT
 
 ## Features
 
-- **Multi-backend LLM support**: Works with OpenAI, GROK, LM Studio, Ollama, and any OpenAI-compatible API
-- **Local Model Support**: Run completely offline with LM Studio or Ollama (no API costs, privacy-first)
-- **Robust error handling**: Automatic retries with exponential backoff for rate limits and API errors
-- **Concurrent processing**: Multi-threaded image processing with configurable thread pools
-- **Smart validation**: Validates model outputs for required trigger tokens before saving
-- **Encoding utilities**: Fix text encoding issues across caption and configuration files
-- **Standalone binary**: Build self-contained executables with PyInstaller
-- **Rich console output**: Beautiful progress bars and colored status messages
-- **Comprehensive logging**: Thread-safe concurrent logging with rotation
-- **Environment-aware**: Flexible configuration via environment files or variables
+- **Multi-backend LLM support**: Run caption jobs against OpenAI, GROK, LM Studio, or Ollama using a single client.
+- **Local readiness checks**: Automatically detect LM Studio/Ollama availability and print step-by-step recovery instructions.
+- **YAML-driven configuration**: Ship defaults with `default.yaml`, layer overrides via `config init`, and manage settings entirely from the CLI.
+- **Concurrent captioning**: Thread-pooled processing with rate limiting, exponential backoff, and `[trigger]` guardrails.
+- **Dataset cleanup**: Interactive duplicate detection with quality scoring and optional YOLO automation.
+- **Encoding repair**: Batch fix caption and configuration files to UTF-8 with progress feedback.
+- **Structured logging**: Rotating Rich-aware logging plus system diagnostics at command start.
+- **Binary distribution**: Produce a standalone executable with PyInstaller via `make build`.
 
 ## Table of Contents
 
@@ -25,23 +23,27 @@ Generate detailed captions for image datasets using OpenAI-compatible models wit
 - [Quick Start](#quick-start)
 - [Usage](#usage)
 - [Configuration](#configuration)
+- [Local Models](#local-models)
 - [Development](#development)
 - [Building](#building)
 - [Testing](#testing)
 - [Troubleshooting](#troubleshooting)
+- [Project Structure](#project-structure)
 - [Contributing](#contributing)
+- [Support](#support)
 - [License](#license)
+- [Acknowledgments](#acknowledgments)
 
 ## Installation
 
 ### Prerequisites
 
-1. **Python 3.14+** (release candidate supported)
-2. **uv package manager** - Install via:
+1. **Python 3.14+** (3.14.0 RC is supported).
+2. **uv package manager** – install with:
    ```bash
    curl -LsSf https://astral.sh/uv/install.sh | sh
    ```
-3. **API Key** - OpenAI API key or compatible service credentials
+3. **API credentials** – export `OPENAI_API_KEY` or `GROK_API_KEY` when using cloud providers.
 
 ### Install Dependencies
 
@@ -50,424 +52,310 @@ Generate detailed captions for image datasets using OpenAI-compatible models wit
 git clone <repository-url>
 cd gen-captions
 
-# Install minimal dependencies
+# Install runtime dependencies
 make sync
 # or: uv sync --python 3.14
 
-# Install all dependencies (includes dev and test tools)
+# Install all extras for development and testing
 make install
 # or: uv sync --all-extras --python 3.14
 ```
 
+The first run copies the bundled `default.yaml` into `~/.config/gen-captions/`.
+
 ## Quick Start
 
-### 1. Configure Environment
+1. **Set credentials (cloud backends only)**  
+   ```bash
+   export OPENAI_API_KEY=sk-your-key
+   export GROK_API_KEY=xai-your-key  # optional unless --model-profile grok
+   ```
 
-Create a `.env` file in the project root:
+2. **Initialize local overrides (optional but recommended)**  
+   ```bash
+   uv run gen-captions config init
+   ```
+   This creates `~/.config/gen-captions/local.yaml`. Edit it to override prompts, models, or processing parameters while keeping defaults untouched. Example:
+   ```yaml
+   processing:
+     thread_pool: 20
+     throttle_submission_rate: 2.0
 
-```bash
-# Generate a template .env file
-uv run --python 3.14 gen-captions gen-env
-```
+   backends:
+     openai:
+       model: gpt-5
+   ```
 
-Edit the generated `.env` file with your credentials:
+3. **Generate captions**
+   ```bash
+   # OpenAI profile
+   uv run gen-captions generate \
+     --image-dir ./images \
+     --caption-dir ./captions \
+     --model-profile openai
 
-```properties
-# Required: API credentials
-OPENAI_API_KEY=sk-your-key-here
-
-# Optional: Model configuration
-OPENAI_MODEL=gpt-4o-mini
-OPENAI_BASE_URL=https://api.openai.com/v1
-GROK_API_KEY=xai-your-key-here
-GROK_MODEL=grok-4
-GROK_BASE_URL=https://api.x.ai/v1
-
-# Optional: Performance tuning
-GETCAP_THREAD_POOL=50
-GETCAP_THROTTLE_SUBMISSION_RATE=10
-GETCAP_THROTTLE_RETRIES=100
-GETCAP_THROTTLE_BACKOFF_FACTOR=2
-GETCAP_LOG_LEVEL=INFO
-```
-
-**Note**: The `.env` file is gitignored by default. Never commit API keys to version control.
-
-### 2. Generate Captions
-
-```bash
-# Basic usage with OpenAI
-uv run --python 3.14 gen-captions generate \
-  --image-dir ./images \
-  --caption-dir ./captions \
-  --model-profile openai
-
-# Using GROK instead
-uv run --python 3.14 gen-captions generate \
-  --image-dir ./images \
-  --caption-dir ./captions \
-  --model-profile grok
-```
-
-**What happens:**
-- Scans `./images` for `.jpg`, `.jpeg`, `.png` files
-- Generates captions using the specified model profile
-- Saves captions as `.txt` files in `./captions` directory
-- Skips images that already have caption files
-- Shows progress bar and detailed logging
+   # Local Ollama profile
+   uv run gen-captions generate \
+     --image-dir ./images \
+     --caption-dir ./captions \
+     --model-profile ollama
+   ```
+   The CLI prints system information, validates configuration, skips images with existing captions, and writes UTF-8 `.txt` files that include the `[trigger]` token. Logs are written to `gen_captions.log`.
 
 ## Usage
 
-### Available Commands
+### Command Overview
 
 ```bash
-# View all available commands
-uv run --python 3.14 gen-captions --help
-
-# Or using make
-make run
+uv run gen-captions --help
+uv run gen-captions version
+uv run gen-captions generate --image-dir ./images --caption-dir ./captions --model-profile openai
+uv run gen-captions fix-encoding --caption-dir ./captions --config-dir ~/.config/gen-captions
+uv run gen-captions dedupe --image-dir ./images [--yolo]
+uv run gen-captions config --help
 ```
 
-### Command Reference
+### Generate Image Captions
 
-#### Generate Captions
+- Required options: `--image-dir`, `--caption-dir`, `--model-profile`.
+- Supported profiles: `openai`, `grok`, `lmstudio`, `ollama`.
+- Cloud providers require API keys; local providers run against the configured base URL and require no key.
+- Uses a thread pool (`processing.thread_pool`) with submission throttling. Retries API calls until `[trigger]` appears or retries are exhausted.
+- Captions are saved beside the dataset with one `.txt` per image.
 
-Generate image captions using OpenAI or GROK models:
+### Deduplicate Dataset
 
 ```bash
-uv run --python 3.14 gen-captions generate \
-  --image-dir <path-to-images> \
-  --caption-dir <output-directory> \
-  --model-profile <openai|grok>
+uv run gen-captions dedupe --image-dir ./images
 ```
 
-**Options:**
-- `--image-dir`: Directory containing source images (required)
-- `--caption-dir`: Directory for output caption files (required)
-- `--model-profile`: model profile to use: `openai` or `grok` (required)
+- Runs five detection layers (exact match through perceptual similarity).
+- Interactive mode previews recommendations per layer; press `c` to apply all moves, `s` to skip, or `x` to exit.
+- `--yolo` applies every recommendation without prompting.
+- Moved files land in `<image-dir>/duplicates/`; caption files move with their images. A summary shows items kept, moved, and total space reclaimed.
 
-#### Fix Encoding Issues
-
-Fix text encoding problems in caption and configuration files:
+### Fix Encoding
 
 ```bash
-uv run --python 3.14 gen-captions fix-encoding \
-  --caption-dir <captions-directory> \
-  --config-dir <config-directory>
+uv run gen-captions fix-encoding \
+  --caption-dir ./captions \
+  --config-dir ~/.config/gen-captions
 ```
 
-Attempts to read files with multiple encodings (utf-8, latin1, cp1252) and converts everything to UTF-8.
+Scans `.txt`, `.yml`, and `.yaml` files, attempts multiple legacy encodings, and rewrites them as UTF-8. Useful after importing datasets from mixed locales.
 
-#### Generate Environment File
+### Configuration CLI
 
-Create a new `.env` file with all configuration variables:
+| Command | Description |
+| --- | --- |
+| `config init [--path PATH]` | Create a minimal `local.yaml` template (default `~/.config/gen-captions/local.yaml`). |
+| `config show [--backend NAME]` | Render the merged configuration with syntax highlighting. |
+| `config get <dot.path>` | Print a single value (e.g. `processing.thread_pool`). |
+| `config set-value <dot.path> <value>` | Update the local configuration in-place. |
+| `config path` | Display effective default/local file paths. |
+| `config validate` | Validate structure and configuration version. |
+| `config reset [--force]` | Remove the local override and fall back to defaults. |
 
-```bash
-uv run --python 3.14 gen-captions gen-env
-```
+### Diagnostics & Logging
 
-Creates `.env`, `.env1`, `.env2`, etc. (increments to avoid overwriting existing files).
+- `gen-captions version` prints the currently installed version (0.5.2).
+- Each command logs to `gen_captions.log` with timestamped, thread-aware entries and mirrors key events to the Rich console.
+- `system_info` output (platform, Python, `GETCAP_*` env overrides) prints automatically at the start of long-running commands.
 
 ## Configuration
 
-### Environment Variable Discovery
+### File Locations
 
-The CLI loads environment variables in this order (first match wins):
+- **Default**: `~/.config/gen-captions/default.yaml` (auto-copied from the package on first run).
+- **Local overrides**: `~/.config/gen-captions/local.yaml` (generated via `config init`).
+- **Custom location**: Set `GEN_CAPTIONS_CONFIG=/path/to/local.yaml` to use an alternate override file (CI, staging, etc.).
 
-1. File path specified by `GEN_CAPTIONS_ENV_FILE` environment variable
-2. `.env` file discovered from current working directory
-3. Existing process environment variables
+`ConfigManager` merges the default and local files, validating against the schema defined in `gen_captions/config_schema.py`.
 
-**Example: Override environment file location**
-```bash
-export GEN_CAPTIONS_ENV_FILE=/path/to/production.env
-uv run --python 3.14 gen-captions generate --image-dir ./images --caption-dir ./captions --model-profile openai
+### Structure Overview
+
+```yaml
+config_version: "1.0"
+
+backends:
+  openai:
+    model: gpt-5-mini
+    base_url: https://api.openai.com/v1
+    models:
+      gpt-5-mini:
+        description: "RECOMMENDED: Cost-efficient GPT-5 with excellent vision capabilities"
+  grok:
+    model: grok-2-vision-1212
+    base_url: https://api.x.ai/v1
+  lmstudio:
+    model: qwen/qwen3-vl-8b
+    base_url: http://localhost:1234/v1
+  ollama:
+    model: qwen2.5vl:7b
+    base_url: http://localhost:11434/v1
+
+caption:
+  required_token: "[trigger]"
+  system_prompt: "You are an expert at generating detailed and accurate stability diffusion type prompts..."
+  user_prompt: "Describe the content of this image..."
+processing:
+  thread_pool: 10
+  throttle_submission_rate: 1.0
+  throttle_retries: 10
+  throttle_backoff_factor: 2.0
+  log_level: INFO
 ```
 
-### Configuration Variables
+### Overriding Values
 
-#### API Configuration
+- Use the CLI:  
+  ```bash
+  uv run gen-captions config set-value processing.thread_pool 16
+  uv run gen-captions config set-value backends.ollama.model qwen3-vl:8b
+  ```
+- Or edit `local.yaml` directly; only include keys you want to override.
+- Run `uv run gen-captions config validate` after editing to catch structural mistakes.
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `OPENAI_API_KEY` | OpenAI API key | (required) |
-| `OPENAI_MODEL` | OpenAI model name | `gpt-4o-mini` |
-| `OPENAI_BASE_URL` | OpenAI API endpoint | `https://api.openai.com/v1` |
-| `GROK_API_KEY` | GROK API key | (required for GROK) |
-| `GROK_MODEL` | GROK model name | `grok-4` |
-| `GROK_BASE_URL` | GROK API endpoint | (none) |
+### Environment Variables
 
-#### Processing Configuration
+| Variable | Purpose | When to set |
+| --- | --- | --- |
+| `OPENAI_API_KEY` | API token for OpenAI profiles | Required for `--model-profile openai` |
+| `GROK_API_KEY` | API token for GROK profiles | Required for `--model-profile grok` |
+| `GEN_CAPTIONS_CONFIG` | Path to alternate local override | Optional (CI, ephemeral configs) |
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `GETCAP_THREAD_POOL` | Number of concurrent workers | `10` |
-| `GETCAP_THROTTLE_SUBMISSION_RATE` | Tasks submitted per second | `1` |
-| `GETCAP_THROTTLE_RETRIES` | Maximum retry attempts | `10` |
-| `GETCAP_THROTTLE_BACKOFF_FACTOR` | Exponential backoff multiplier | `2` |
-| `GETCAP_LOG_LEVEL` | Logging verbosity | `INFO` |
+LM Studio and Ollama profiles run locally and do not need API keys.
+
+## Local Models
+
+- **LM Studio**  
+  1. Launch the app, open the **Local Server** tab, and press **Start Server** (default port `1234`).  
+  2. Load a vision-capable model that matches `backends.lmstudio.model`.  
+  3. Run `gen-captions generate --model-profile lmstudio`. The client verifies the server and prints guided recovery steps if unreachable.
+
+- **Ollama**  
+  1. Start the daemon: `ollama serve` (default port `11434`).  
+  2. Pull a supported model, e.g. `ollama pull qwen2.5vl:7b` or `ollama pull openbmb/minicpm-v4.5`.  
+  3. Run `gen-captions generate --model-profile ollama`. Connection issues trigger detailed troubleshooting hints.
+
+Use `config show --backend lmstudio` or `--backend ollama` to list the curated model descriptions included with the defaults.
 
 ## Development
 
-### Development Workflow
-
-This project uses `make` for all development tasks. See available targets:
-
 ```bash
-make help
+uv run ruff check .
+uv run flake8 gen_captions/
+uv run black gen_captions/ tests/
+uv run isort gen_captions/ tests/
+uv run mypy gen_captions/
+uv run pytest
+uv run pytest tests/unit/
+make all  # format + lint + typecheck + test
 ```
 
-### Common Development Tasks
-
-```bash
-# Format code with black and isort
-make format
-
-# Run linters (ruff + flake8)
-make lint
-
-# Run type checker (mypy)
-make typecheck
-
-# Run test suite
-make test
-
-# Run all quality checks (format + lint + typecheck + test)
-make all
-
-# Clean build artifacts
-make clean
-```
-
-### Code Quality Standards
-
-**Zero-tolerance linting policy**: All code must pass with zero warnings before commits.
-
-- **Ruff**: Must show "All checks passed!"
-- **Flake8**: Must have clean exit (no output)
-- **MyPy**: Must show "Success: no issues found"
-
-Run `make lint` and `make typecheck` before every commit.
-
-### Code Style
-
-- **Line length**: 65 characters (Black configuration)
-- **Python version**: 3.14+
-- **Type hints**: Required for all functions
-- **Naming**: `snake_case` for modules/functions, `PascalCase` for classes
-- **Docstrings**: Google-style format for public APIs
-- **Commits**: Conventional Commits format (`feat:`, `fix:`, `chore:`, etc.)
-
-### Running Individual Tools
-
-```bash
-# Linting
-uv run --python 3.14 ruff check .
-uv run --python 3.14 flake8 gen_captions/
-
-# Formatting
-uv run --python 3.14 black gen_captions/ tests/
-uv run --python 3.14 isort gen_captions/ tests/
-
-# Type checking
-uv run --python 3.14 mypy gen_captions/
-
-# Testing
-uv run --python 3.14 pytest -v
-uv run --python 3.14 pytest tests/unit/
-uv run --python 3.14 pytest tests/integration/
-```
+Follow the 4-space indentation, Black + Isort (line length 65), and Ruff/MyPy guidelines enforced in `pyproject.toml`.
 
 ## Building
 
-### Build Standalone Binary
-
-Create a self-contained executable with PyInstaller:
-
 ```bash
-# Build binary
 make build
-# or: uv run --python 3.14 pyinstaller gen_captions.spec --clean
-
-# Binary location
-ls -lh dist/gen-captions
-
-# Install to system
-cp dist/gen-captions ~/bin/
-# or: cp dist/gen-captions /usr/local/bin/
+# -> dist/gen-captions packaged and copied to /opt/bin/gen-captions
 ```
 
-The binary includes all dependencies and requires no Python installation on the target system.
+This runs `uv sync --all-extras` first, then uses `pyinstaller` with `gen_captions.spec`. To build manually:
+
+```bash
+uv run pyinstaller gen_captions.spec --clean
+```
 
 ## Testing
 
-### Test Structure
-
-- **Unit tests** (`tests/unit/`): Test individual components in isolation
-- **Integration tests** (`tests/integration/`): Test component interactions
-- **End-to-end tests** (`tests/e2e/`): Full workflow validation
-- **BDD tests** (`tests/features/`): Behave-style feature specifications
-
-### Running Tests
-
-```bash
-# Run all tests with coverage
-make test
-
-# Run specific test suite
-uv run --python 3.14 pytest tests/unit/ -v
-uv run --python 3.14 pytest tests/integration/ -v
-uv run --python 3.14 pytest tests/e2e/ -v
-
-# Run specific test file
-uv run --python 3.14 pytest tests/unit/test_cli.py -v
-
-# Run specific test function
-uv run --python 3.14 pytest tests/unit/test_cli.py::test_cli_no_args -v
-
-# View coverage report
-# HTML report is generated at: htmlcov/index.html
-open htmlcov/index.html  # macOS
-xdg-open htmlcov/index.html  # Linux
-```
-
-### Current Test Coverage
-
-Run `make test` to see current coverage. Target: 70%+ coverage across all modules.
+- Run the entire suite with coverage:
+  ```bash
+  uv run pytest
+  ```
+- Target a suite:
+  ```bash
+  uv run pytest tests/unit/
+  ```
+- Coverage HTML reports land in `htmlcov/index.html`.
 
 ## Troubleshooting
 
-### Common Issues
+- **"LLM_API_KEY is not set"** – Export the appropriate API key before running cloud backends.  
+  ```bash
+  export OPENAI_API_KEY=sk-your-key
+  ```
 
-#### OSError: File not found during CLI import
+- **Local server connection errors** – The CLI prints backend-specific instructions. For LM Studio, start the Local Server and confirm the port matches `backends.lmstudio.base_url`. For Ollama, ensure `ollama serve` is running and the requested model is pulled.
 
-**Cause**: No `.env` file found and `GEN_CAPTIONS_ENV_FILE` not set.
+- **Missing `[trigger]` token** – The client automatically retries. If it persists, adjust `caption.system_prompt`/`caption.user_prompt` or switch to a different model profile.
 
-**Solution**:
-```bash
-# Create .env file
-uv run --python 3.14 gen-captions gen-env
-# Then edit .env with your configuration
-```
+- **Rate limits or slow throughput** – Tune `processing.thread_pool`, `processing.throttle_submission_rate`, or `processing.throttle_backoff_factor` in `local.yaml`.
 
-#### Rate limit errors (429)
+- **Configuration validation warnings** – Run `uv run gen-captions config validate`. Ensure `config_version` matches the bundled schema (currently `1.0`).
 
-**Cause**: API rate limiting from OpenAI or GROK.
-
-**Solution**: Adjust throttle settings in `.env`:
-```properties
-GETCAP_THROTTLE_RETRIES=100
-GETCAP_THROTTLE_BACKOFF_FACTOR=3
-GETCAP_THROTTLE_SUBMISSION_RATE=5
-```
-
-The client automatically retries with exponential backoff.
-
-#### Missing [trigger] token in output
-
-**Cause**: Model didn't include the required `[trigger]` token in response.
-
-**Solution**: The client automatically retries. If persistent:
-- Check your model configuration
-- Verify the prompt in `gen_captions/openai_generic_client.py`
-- Try a different model (e.g., `gpt-4` instead of `gpt-4o-mini`)
-
-#### Python version compatibility error
-
-**Cause**: Wrong Python version detected.
-
-**Solution**: Explicitly specify Python 3.14:
-```bash
-uv sync --python 3.14
-uv run --python 3.14 gen-captions --help
-```
-
-Or set the Python version in `.python-version`:
-```bash
-echo "3.14.0" > .python-version
-```
-
-### Debug Logging
-
-Enable verbose logging:
-
-```bash
-# In .env file
-GETCAP_LOG_LEVEL=DEBUG
-
-# Check log file
-tail -f gen_captions.log
-```
+- **Need deeper logs** – Set `processing.log_level` to `DEBUG` and inspect `gen_captions.log`.
 
 ## Project Structure
 
 ```
 gen-captions/
-├── gen_captions/          # Main package
-│   ├── cli.py            # Typer CLI entrypoint
-│   ├── config.py         # Configuration management
-│   ├── image_processor.py # Batch processing logic
-│   ├── openai_generic_client.py # LLM API client
-│   ├── llm_client.py     # Client factory
-│   ├── logger_config.py  # Logging configuration
-│   ├── encoding_fixer.py # Text encoding utilities
-│   ├── utils.py          # Helper functions
-│   └── VERSION           # Version file
-├── tests/                # Test suites
-│   ├── unit/            # Unit tests
-│   ├── integration/     # Integration tests
-│   ├── e2e/             # End-to-end tests
-│   └── features/        # BDD feature specs
-├── pyproject.toml       # Project metadata and dependencies
-├── gen_captions.spec    # PyInstaller build spec
-├── Makefile             # Development commands
-├── CLAUDE.md            # AI assistant guidance
-├── AGENTS.md            # Development guidelines
-└── README.md            # This file
+├── gen_captions/
+│   ├── cli.py
+│   ├── config.py
+│   ├── config_manager.py
+│   ├── config_schema.py
+│   ├── dedupe.py
+│   ├── duplicate_detector.py
+│   ├── encoding_fixer.py
+│   ├── file_operations.py
+│   ├── image_processor.py
+│   ├── llm_client.py
+│   ├── logger_config.py
+│   ├── openai_generic_client.py
+│   ├── quality_scorer.py
+│   ├── system_info.py
+│   ├── utils.py
+│   ├── VERSION
+│   └── default.yaml
+├── tests/
+│   ├── unit/
+│   ├── integration/
+│   ├── e2e/
+│   └── features/
+├── docs/
+├── Makefile
+├── pyproject.toml
+├── gen_captions.spec
+└── README.md
 ```
 
-## Repository Layout
-
-- **`gen_captions/`** - Source package (CLI, configuration, logging, processing, OpenAI client)
-- **`tests/`** - Unit, integration, and behaviour-driven test suites
-- **`pyproject.toml`** - Project configuration and dependencies (managed by uv)
-- **`gen_captions.spec`** - PyInstaller specification for standalone binary builds
-- **`.python-version`** - Python version pinning for uv (3.14.0)
-- **`Makefile`** - Common development tasks (format, lint, test, build)
-- **`CLAUDE.md`** - Guidance for Claude Code AI assistant
-- **`AGENTS.md`** - Development workflow and contribution guidelines
+Runtime configuration lives in `~/.config/gen-captions/`, and logs default to `gen_captions.log` in the working directory.
 
 ## Contributing
 
-We welcome contributions! Please see:
-
-- **`CONTRIBUTING.md`** - Contribution guidelines (if exists)
-- **`AGENTS.md`** - Development workflow and coding standards
-- **`CLAUDE.md`** - Architecture documentation and development patterns
-
-### Before Submitting a PR
-
-1. Run `make all` to verify all checks pass
-2. Ensure zero linting warnings (ruff, flake8, mypy)
-3. Add tests for new functionality
-4. Update documentation as needed
-5. Use conventional commit messages
+- Review `CONTRIBUTING.md`, `AGENTS.md`, and `CLAUDE.md`.
+- Use Conventional Commits (`feat:`, `fix:`, `chore:`) under 72 characters.
+- Run `make all` (or the equivalent uv commands) before opening a PR.
+- Add or update tests alongside functional changes.
 
 ## Support
 
-- **Issues**: Report bugs or request features via the repository issue tracker
-- **Documentation**: See `CLAUDE.md` for architecture details
-- **Development**: See `AGENTS.md` for workflow guidelines
+Open an issue in the repository for bugs or feature requests. Architecture and workflow references live in `CLAUDE.md` and `AGENTS.md`.
 
 ## License
 
-MIT License. See `LICENSE` file for details.
+MIT. See `LICENSE` for details.
 
 ## Acknowledgments
 
 Built with:
-- [uv](https://github.com/astral-sh/uv) - Fast Python package manager
-- [Typer](https://typer.tiangolo.com/) - CLI framework
-- [Rich](https://rich.readthedocs.io/) - Terminal formatting
-- [OpenAI Python SDK](https://github.com/openai/openai-python) - API client
-- [PyInstaller](https://pyinstaller.org/) - Binary packaging
+
+- [uv](https://github.com/astral-sh/uv) – Python packaging/runtime management
+- [Typer](https://typer.tiangolo.com/) – CLI framework
+- [Rich](https://rich.readthedocs.io/) – Console output & progress bars
+- [OpenAI Python SDK](https://github.com/openai/openai-python) – API client
+- [imagehash](https://github.com/JohannesBuchner/imagehash) – Perceptual duplicate detection
+- [PyInstaller](https://pyinstaller.org/) – Binary packaging
+- [Pillow](https://python-pillow.org/) – Image handling
