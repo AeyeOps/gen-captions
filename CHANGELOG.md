@@ -4,6 +4,73 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2025-11-02
+
+### Added
+
+* **Server Auto-Detection**: Automatic detection of LM Studio and Ollama server availability
+  - Socket-based connection check on client initialization (2-second timeout)
+  - Helpful, backend-specific error messages when servers are not running
+  - Clear instructions for starting servers and loading models
+  - Mid-processing detection if server goes down during batch operations
+  - Zero impact on cloud providers (openai/grok) - check skipped entirely
+
+* **Expanded Ollama Model Support**: 13 recommended vision models (≤8B parameters)
+  - **MiniCPM Models** (5 variants): v4.5, o2.6, v4, v2.6, v2.5 - GPT-4o/4V level performance
+  - **Qwen Models** (2 variants): 7B, 3B - Flagship vision-language (995K+ pulls)
+  - **LLaVA Models** (4 variants): Standard 7B (11.2M pulls), llama3 8B, phi3 3.8B, bakllava 7B
+  - **Moondream**: 1.8B ultra-lightweight edge-optimized model
+  - All models include full organization/identifier format (e.g., `openbmb/minicpm-v4.5`)
+  - Selections based on 2025 community benchmarks and feedback
+
+### Changed
+
+* **Model Parameter Optimization**:
+  - Fixed Gemma 3 27B max_tokens: 500 → 256 (aligned with caption generation best practices)
+  - Verified all max_tokens values against official model documentation
+  - Confirmed temperature=0.1 and top_p defaults optimal for accurate image detection
+
+* **Enhanced Error Handling**:
+  - Connection refusal errors now provide actionable troubleshooting steps
+  - Different error messages for LM Studio vs Ollama
+  - Errors include server URLs and port information from configuration
+
+### Technical
+
+* **New Files**:
+  - `tests/unit/test_server_detection.py` - Unit tests for server availability checks (4 tests, all passing)
+
+* **Modified Files**:
+  - `gen_captions/openai_generic_client.py`:
+    - Added `_verify_local_server_availability()` method for socket-based health checks
+    - Added `_raise_server_not_running_error()` for backend-specific error messages
+    - Enhanced exception handling in `generate_description()` for mid-processing failures
+    - Updated MODEL_CONFIG with 13 new Ollama models
+    - Fixed Gemma 3 27B max_tokens value
+  - `gen_captions/default.yaml`:
+    - Expanded Ollama models section with detailed descriptions
+    - Organized by model family (MiniCPM, Qwen, LLaVA, Moondream)
+    - Added benchmark information and pull counts
+  - `gen_captions/config.py`:
+    - Removed unnecessary CURRENT_BACKEND property (simplified)
+
+* **Type Safety**:
+  - Fixed mypy type hints for `_build_chat_request()` return type
+  - Added type ignore comment for OpenAI SDK dynamic kwargs
+  - All new code passes mypy strict checks
+
+### Fixed
+
+* Pre-existing unused import in `duplicate_detector.py` (auto-fixed by ruff)
+
+### Testing
+
+* ✅ All 4 server detection unit tests passing
+* ✅ LM Studio connection verified (qwen3-vl-8b)
+* ✅ Ollama connection verified (server running)
+* ✅ Type checking passes (mypy)
+* ✅ Linting clean (ruff)
+
 ## [0.5.0] - 2025-11-02
 
 ### Added

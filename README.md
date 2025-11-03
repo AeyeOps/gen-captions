@@ -2,7 +2,7 @@
 
 Generate detailed captions for image datasets using OpenAI-compatible models with rich logging, retry handling, and CLI utilities.
 
-**Version:** 0.5.0
+**Version:** 0.5.1
 **Python:** 3.14+
 **License:** MIT
 

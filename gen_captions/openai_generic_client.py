@@ -86,7 +86,7 @@ MODEL_CONFIG = {
         "supports_system_role": True,
         "supports_temperature": True,
         "max_tokens_key": "max_tokens",
-        "max_tokens_value": 500,
+        "max_tokens_value": 256,
     },
     "mistralai/magistral-small-2509": {
         "supports_system_role": True,
@@ -95,23 +95,81 @@ MODEL_CONFIG = {
         "max_tokens_value": 250,
     },
     # === Ollama Models ===
+    # MiniCPM (openbmb)
+    "openbmb/minicpm-v4.5": {
+        "supports_system_role": True,
+        "supports_temperature": True,
+        "max_tokens_key": "max_tokens",
+        "max_tokens_value": 200,
+    },
+    "openbmb/minicpm-o2.6": {
+        "supports_system_role": True,
+        "supports_temperature": True,
+        "max_tokens_key": "max_tokens",
+        "max_tokens_value": 200,
+    },
+    "openbmb/minicpm-v4": {
+        "supports_system_role": True,
+        "supports_temperature": True,
+        "max_tokens_key": "max_tokens",
+        "max_tokens_value": 200,
+    },
+    "openbmb/minicpm-v2.6": {
+        "supports_system_role": True,
+        "supports_temperature": True,
+        "max_tokens_key": "max_tokens",
+        "max_tokens_value": 200,
+    },
+    "openbmb/minicpm-v2.5": {
+        "supports_system_role": True,
+        "supports_temperature": True,
+        "max_tokens_key": "max_tokens",
+        "max_tokens_value": 200,
+    },
+    # Qwen
     "qwen2.5vl:7b": {
         "supports_system_role": True,
         "supports_temperature": True,
         "max_tokens_key": "max_tokens",
         "max_tokens_value": 250,
     },
-    "minicpm-o-2.6:latest": {
+    "qwen2.5vl:3b": {
         "supports_system_role": True,
         "supports_temperature": True,
         "max_tokens_key": "max_tokens",
         "max_tokens_value": 250,
     },
-    "openbmb/minicpm-o2.6:latest": {
+    # LLaVA
+    "llava:7b": {
         "supports_system_role": True,
         "supports_temperature": True,
         "max_tokens_key": "max_tokens",
-        "max_tokens_value": 250,
+        "max_tokens_value": 200,
+    },
+    "llava-llama3:8b": {
+        "supports_system_role": True,
+        "supports_temperature": True,
+        "max_tokens_key": "max_tokens",
+        "max_tokens_value": 200,
+    },
+    "llava-phi3": {
+        "supports_system_role": True,
+        "supports_temperature": True,
+        "max_tokens_key": "max_tokens",
+        "max_tokens_value": 200,
+    },
+    "bakllava": {
+        "supports_system_role": True,
+        "supports_temperature": True,
+        "max_tokens_key": "max_tokens",
+        "max_tokens_value": 200,
+    },
+    # Moondream
+    "moondream": {
+        "supports_system_role": True,
+        "supports_temperature": True,
+        "max_tokens_key": "max_tokens",
+        "max_tokens_value": 150,
     },
 }
 
@@ -145,6 +203,109 @@ class OpenAIGenericClient:
         self._console = console
         self._logger = logger
 
+        # Verify local server availability for lmstudio/ollama
+        self._verify_local_server_availability()
+
+    def _verify_local_server_availability(self) -> bool:
+        """Verify local server is running for lmstudio/ollama backends.
+
+        Returns:
+            True if server is reachable, False otherwise
+
+        Raises:
+            ConnectionError: If server is not available
+                (backend-specific message)
+        """
+        import socket
+        import urllib.parse
+
+        # Only check local providers
+        backend = self._config._current_backend
+        if backend not in ("lmstudio", "ollama"):
+            return True
+
+        # Parse base URL to extract host and port
+        parsed_url = urllib.parse.urlparse(self._config.LLM_BASE_URL)
+        hostname = parsed_url.hostname or "localhost"
+        # Ensure hostname is str, not bytes
+        host = hostname.decode() if isinstance(hostname, bytes) else hostname
+        port = parsed_url.port
+
+        if not port:
+            # Default ports if not specified
+            port = 1234 if backend == "lmstudio" else 11434
+
+        # Attempt socket connection
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(2)  # 2 second timeout
+
+        try:
+            result = sock.connect_ex((host, port))
+            sock.close()
+
+            if result != 0:
+                # Server not reachable - raise backend-specific error
+                self._raise_server_not_running_error(backend, host, port)
+
+            return True
+
+        except socket.error as e:
+            self._logger.error(
+                "Socket error checking %s server: %s", backend, e
+            )
+            self._raise_server_not_running_error(backend, host, port)
+
+        return False
+
+    def _raise_server_not_running_error(
+        self, backend: str, host: str, port: int
+    ) -> None:
+        """Raise backend-specific connection error with helpful message.
+
+        Args:
+            backend: The backend name (lmstudio or ollama)
+            host: Server host
+            port: Server port
+        """
+        base_url = f"http://{host}:{port}"
+
+        if backend == "lmstudio":
+            msg = (
+                f"\n[bold red]LM Studio Server Not Running[/]\n"
+                f"\nThe LM Studio server is not reachable at {base_url}\n"
+                f"\n[bold yellow]To fix this:[/]"
+                f"\n  1. Open LM Studio application"
+                f"\n  2. Go to 'Local Server' tab (left sidebar)"
+                f"\n  3. Click 'Start Server' button"
+                f"\n  4. Ensure port is set to {port}"
+                f"\n  5. Load a vision-capable model in the server"
+                f"\n\n[dim]For more help, see: "
+                f"https://github.com/lmstudio-ai/docs[/]"
+            )
+        else:  # ollama
+            msg = (
+                f"\n[bold red]Ollama Server Not Running[/]\n"
+                f"\nThe Ollama server is not reachable at {base_url}\n"
+                f"\n[bold yellow]To fix this:[/]"
+                f"\n  1. Start Ollama server: [cyan]ollama serve[/]"
+                f"\n  2. Ensure the server is running "
+                f"on port {port}"
+                f"\n  3. Pull a vision model: "
+                f"[cyan]ollama pull qwen2.5vl:7b[/]"
+                f"\n\n[dim]For more help, see: "
+                f"https://github.com/ollama/ollama[/]"
+            )
+
+        self._console.print(msg)
+        self._logger.error(
+            "%s server not reachable at %s:%s", backend, host, port
+        )
+
+        raise ConnectionError(
+            f"{backend.upper()} server not running at {base_url}. "
+            f"See error message above for instructions."
+        )
+
     def generate_description(self, image_path: str) -> str:
         """Generate a description for the image using the OpenAI API.
 
@@ -167,7 +328,7 @@ class OpenAIGenericClient:
             try:
                 # Build request params dynamically
                 payload = self._build_chat_request(base64_image)
-                response = self._client.chat.completions.create(
+                response = self._client.chat.completions.create(  # type: ignore[call-overload]
                     **payload
                 )
 
@@ -226,11 +387,37 @@ class OpenAIGenericClient:
             ) as re:
                 # Handle known API-limiting / request errors
                 code = 0
-                if (
-                    isinstance(re, openai.APIConnectionError)
-                    and re.code
-                ):
-                    code = int(re.code)
+                if isinstance(re, openai.APIConnectionError):
+                    # Check for connection refusal
+                    if (
+                        "Connection refused" in str(re)
+                        or "Failed to connect" in str(re)
+                    ):
+                        backend = self._config._current_backend
+                        if backend in ("lmstudio", "ollama"):
+                            # Server went down during processing
+                            import urllib.parse
+                            parsed_url = urllib.parse.urlparse(
+                                self._config.LLM_BASE_URL
+                            )
+                            hostname = (
+                                parsed_url.hostname or "localhost"
+                            )
+                            # Ensure hostname is str
+                            host = (
+                                hostname.decode()
+                                if isinstance(hostname, bytes)
+                                else hostname
+                            )
+                            port = parsed_url.port or (
+                                1234 if backend == "lmstudio" else 11434
+                            )
+                            self._raise_server_not_running_error(
+                                backend, host, port
+                            )
+
+                    if re.code:
+                        code = int(re.code)
                 elif isinstance(re, openai.RateLimitError):
                     code = re.status_code
                 elif isinstance(re, HTTPError):
@@ -281,9 +468,15 @@ class OpenAIGenericClient:
         )
         return ""
 
-    def _build_chat_request(self, base64_image: str) -> dict:
+    def _build_chat_request(
+        self, base64_image: str
+    ) -> dict[str, object]:
         """Build request parameters with model quirks."""
-        model_name = self._config.LLM_MODEL.strip().lower()
+        model_name = (
+            self._config.LLM_MODEL.strip().lower()
+            if self._config.LLM_MODEL
+            else ""
+        )
 
         # Get model quirks from hardcoded config
         model_quirks = MODEL_CONFIG.get(model_name, {})
@@ -298,7 +491,9 @@ class OpenAIGenericClient:
         ).strip()
 
         # Default request params
-        request_params = {"model": self._config.LLM_MODEL}
+        request_params: dict[str, object] = {
+            "model": self._config.LLM_MODEL
+        }
 
         # Get model quirks (defaults for unknown models)
         supports_system = model_quirks.get(

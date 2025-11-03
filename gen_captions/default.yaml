@@ -86,13 +86,39 @@ backends:
 
     # Available Models (descriptions shown in 'config show')
     # Note: Only models YOU have pulled will work
+    # Models recommended based on 2025 benchmarks and community feedback
     models:
+      # === MiniCPM Models (openbmb) - GPT-4o/4V level performance ===
+      openbmb/minicpm-v4.5:
+        description: "RECOMMENDED: 8B - GPT-4o level, video understanding, runs on phones (newest)"
+      openbmb/minicpm-o2.6:
+        description: "8B - Vision + speech + streaming, most popular (18.9K pulls)"
+      openbmb/minicpm-v4:
+        description: "4B - GPT-4V level, multi-image and video"
+      openbmb/minicpm-v2.6:
+        description: "8B - Multi-image and video support"
+      openbmb/minicpm-v2.5:
+        description: "8B - GPT-4V level multimodal"
+
+      # === Qwen Models - Flagship vision-language (995K+ pulls) ===
       qwen2.5vl:7b:
-        description: "Vision-capable: Qwen2.5-VL 7B - Multimodal with dynamic resolution and OCR"
-      minicpm-o-2.6:latest:
-        description: "Vision-capable: MiniCPM-o 2.6 8B - End-to-end multimodal (vision + speech)"
-      openbmb/minicpm-o2.6:latest:
-        description: "Vision-capable: MiniCPM-o 2.6 8B - End-to-end multimodal (alternative name)"
+        description: "RECOMMENDED: 7B - Dynamic resolution, OCR, chart parsing (flagship)"
+      qwen2.5vl:3b:
+        description: "3B - Smaller, efficient variant of Qwen2.5-VL"
+
+      # === LLaVA Models - Popular open vision models ===
+      llava:7b:
+        description: "7B - Most popular LLaVA variant (11.2M pulls)"
+      llava-llama3:8b:
+        description: "8B - LLaVA fine-tuned on Llama 3"
+      llava-phi3:
+        description: "3.8B - Lightweight LLaVA from Phi 3 Mini"
+      bakllava:
+        description: "7B - LLaVA with Mistral 7B base"
+
+      # === Moondream - Ultra-lightweight edge model ===
+      moondream:
+        description: "1.8B - Tiny, fast, runs on edge devices (393K pulls)"
 
 # Caption Generation Prompts
 # Customize these to change caption style and format
