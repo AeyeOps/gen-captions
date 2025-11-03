@@ -1,4 +1,4 @@
-"""Module for processing images and generating captions using model profiles."""
+"""Image processing and caption generation using models."""
 
 import os
 import time

@@ -56,6 +56,12 @@ uv run pytest tests/unit/test_cli.py
 uv run pytest tests/unit/test_cli.py::test_specific_function -v
 ```
 
+**Testing Guidelines:**
+- **NEVER redirect stdout/stderr** when running manual tests (no `2>&1`, `| tail`, `| head`, etc.)
+- **NEVER pipe output** during testing - let the user see real-time progress
+- **Use reasonable timeouts** (30-60 seconds for small image sets, not 3+ minutes)
+- This allows the user to observe what's happening and catch issues early
+
 ### Code Quality
 ```bash
 # Lint (must pass before commits)
@@ -130,30 +136,54 @@ make clean
 
 ## Configuration & Environment
 
-Environment variables (prefix with `OPENAI_` or `GROK_` based on backend):
+### YAML Configuration Files
+
+**CRITICAL: Configuration file locations and modification rules**
+
+The application uses a **YAML-based configuration system** with two files:
+
+1. **Default configuration**: `~/.config/gen-captions/default.yaml`
+   - Copied from bundled template at `/opt/aeo/gen-captions/gen_captions/default.yaml` on first run
+   - **EDIT THIS FILE** for permanent configuration changes
+   - **NEVER MODIFY THE BUNDLED TEMPLATE** at `/opt/aeo/gen-captions/gen_captions/default.yaml`
+   - After changing the bundled template, copy it: `cp /opt/aeo/gen-captions/gen_captions/default.yaml ~/.config/gen-captions/default.yaml`
+
+2. **Local overrides**: `~/.config/gen-captions/local.yaml`
+   - Use for **temporary overrides** or **testing**
+   - Deep-merged over default.yaml
+   - Survives updates
+   - Create if it doesn't exist
+
+**For permanent changes (edit ~/.config/gen-captions/default.yaml):**
+```yaml
+processing:
+  log_level: INFO
+backends:
+  openai:
+    model: gpt-5-mini
+```
+
+**For temporary testing (edit ~/.config/gen-captions/local.yaml):**
+```yaml
+processing:
+  log_level: DEBUG  # Override just for testing
+```
+
+**Configuration merge behavior:**
+- local.yaml overrides default.yaml
+- Deep merge: nested keys merged, not replaced
+- Log file: `/opt/aeo/gen-captions/gen_captions.log`
+
+### Environment Variables (Legacy - being phased out)
+
+API keys are still loaded from environment:
 ```bash
 # API Configuration
-OPENAI_API_KEY=sk-...           # Required
-OPENAI_MODEL=gpt-4o-mini        # Optional (defaults shown)
-OPENAI_BASE_URL=https://api.openai.com/v1  # Optional
-
-GROK_API_KEY=...                # Required for GROK backend
-GROK_MODEL=grok-4               # Optional
-GROK_BASE_URL=...               # Optional
-
-# Processing Configuration
-GETCAP_THREAD_POOL=50           # Concurrent workers (default: 10)
-GETCAP_THROTTLE_SUBMISSION_RATE=10  # Tasks/second (default: 1)
-GETCAP_THROTTLE_RETRIES=100     # Max retry attempts (default: 10)
-GETCAP_THROTTLE_BACKOFF_FACTOR=2    # Exponential backoff (default: 2)
-GETCAP_LOG_LEVEL=INFO           # Logging level (default: INFO)
+OPENAI_API_KEY=sk-...           # Required for OpenAI
+GROK_API_KEY=...                # Required for GROK
 ```
 
-Override env file discovery:
-```bash
-export GEN_CAPTIONS_ENV_FILE=/path/to/custom.env
-uv run gen-captions generate ...
-```
+All other settings should use YAML configuration instead of environment variables.
 
 ## Code Style
 

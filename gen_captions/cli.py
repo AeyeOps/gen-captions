@@ -69,7 +69,7 @@ def init(
     manager = ConfigManager(console)
 
     output_path = (
-        Path(path) if path else manager.CONFIG_SEARCH_PATHS[0]
+        Path(path) if path else manager.LOCAL_CONFIG_PATH
     )
 
     if output_path.exists() and not force:
@@ -200,10 +200,9 @@ def path():
     else:
         console.print("  (none found)")
 
-    console.print("\n[bold]Search paths:[/]")
-    for p in manager.CONFIG_SEARCH_PATHS:
-        exists = "✓" if p.exists() else "✗"
-        console.print(f"  {exists} {p}")
+    console.print("\n[bold]Local config path:[/]")
+    exists = "✓" if manager.LOCAL_CONFIG_PATH.exists() else "✗"
+    console.print(f"  {exists} {manager.LOCAL_CONFIG_PATH}")
 
 
 @config_app.command(help="Validate configuration")
@@ -335,25 +334,48 @@ def generate(
     if model_profile.lower() not in ("lmstudio", "ollama"):
         if not config.LLM_API_KEY:
             logger.error("LLM_API_KEY is not set in the environment")
-    else:
-        if not image_directory:
-            logger.error(
-                "Error: --image-dir is required if not using --fix-encoding."
-            )
             raise typer.Exit(code=1)
 
-        if caption_directory:
-            os.makedirs(caption_directory, exist_ok=True)
+    if not image_directory:
+        logger.error("Error: --image-dir is required")
+        raise typer.Exit(code=1)
 
-        # Pass the chosen profile to the process_images function
-        process_images(
-            image_directory,
-            caption_directory,
-            backend=model_profile,
-            config=config,
-            console=console,
-            logger=logger,
-        )
+    if caption_directory:
+        os.makedirs(caption_directory, exist_ok=True)
+
+    process_images(
+        image_directory,
+        caption_directory,
+        backend=model_profile,
+        config=config,
+        console=console,
+        logger=logger,
+    )
+
+
+@app.command(
+    help="Interactive duplicate image detection and cleanup."
+)
+def dedupe(
+    image_dir: str = typer.Option(
+        ".",
+        "--image-dir",
+        help="Directory containing images to deduplicate (default: current directory)"
+    ),
+    yolo: bool = typer.Option(
+        False,
+        "--yolo",
+        help="Auto-execute all recommendations without prompting"
+    ),
+):
+    """Find and remove duplicate images using multiple detection layers.
+
+    Detects duplicates from exact byte-for-byte matches to perceptually
+    similar images, keeping the best quality version.
+    """
+    from .dedupe import dedupe_command
+
+    dedupe_command(image_dir=image_dir, yolo=yolo, console=console)
 
 
 if __name__ == "__main__":

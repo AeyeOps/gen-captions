@@ -36,6 +36,13 @@ hiddenimports = [
     'concurrent_log_handler',
     'requests',
     'urllib3',
+    # Dedupe dependencies
+    'PIL',
+    'PIL.Image',
+    'imagehash',
+    'numpy',
+    'scipy',
+    'pywt',
 ]
 
 # Binaries to include (usually auto-detected, but can be specified here)
@@ -45,10 +52,7 @@ binaries = []
 excludes = [
     'tkinter',
     'matplotlib',
-    'numpy',
-    'scipy',
     'pandas',
-    'PIL',
     'torch',
     'transformers',
     'pytest',

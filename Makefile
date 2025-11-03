@@ -31,8 +31,8 @@ install:
 	uv sync --all-extras --python 3.14
 
 # Build standalone binary
-build: clean
-	uv run --python 3.14 pyinstaller gen_captions.spec --clean
+build: install clean
+	uv run pyinstaller gen_captions.spec --clean
 	mkdir -p /opt/bin
 	cp dist/gen-captions /opt/bin/
 	@echo ""

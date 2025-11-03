@@ -1,8 +1,9 @@
 """Factory method to get an LLM client based on the model profile.
 
-To elaborate on the above code snippet, the get_llm_client function is a
-factory method that returns an LLM client based on the model profile argument.
-The profile argument specifies which model profile to use, such as "openai" or "grok".
+To elaborate on the above code snippet, the get_llm_client
+function is a factory method that returns an LLM client based
+on the model profile argument. The profile argument specifies
+which model profile to use, such as "openai" or "grok".
 """
 
 from logging import Logger

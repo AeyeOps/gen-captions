@@ -1,0 +1,6 @@
+# Local Configuration Overrides
+# This file overrides settings from default.yaml
+
+processing:
+  # Logging level (DEBUG|INFO|WARNING|ERROR|CRITICAL)
+  log_level: DEBUG

@@ -29,21 +29,24 @@ MODEL_CONFIG = {
     },
     "gpt-5-mini": {
         "supports_system_role": True,
-        "supports_temperature": True,
+        "supports_temperature": False,
+        "reasoning_effort": "medium",
         "max_tokens_key": "max_completion_tokens",
-        "max_tokens_value": 300,
+        "max_tokens_value": 2000,
     },
     "gpt-5": {
         "supports_system_role": True,
-        "supports_temperature": True,
+        "supports_temperature": False,
+        "reasoning_effort": "medium",
         "max_tokens_key": "max_completion_tokens",
-        "max_tokens_value": 300,
+        "max_tokens_value": 2000,
     },
     "gpt-5-nano": {
         "supports_system_role": True,
-        "supports_temperature": True,
+        "supports_temperature": False,
+        "reasoning_effort": "medium",
         "max_tokens_key": "max_completion_tokens",
-        "max_tokens_value": 200,
+        "max_tokens_value": 2000,
     },
     "gpt-4o-mini": {
         "supports_system_role": True,
@@ -152,20 +155,20 @@ MODEL_CONFIG = {
         "max_tokens_key": "max_tokens",
         "max_tokens_value": 200,
     },
-    "llava-phi3": {
+    "llava-phi3:3.8b": {
         "supports_system_role": True,
         "supports_temperature": True,
         "max_tokens_key": "max_tokens",
         "max_tokens_value": 200,
     },
-    "bakllava": {
+    "bakllava:7b": {
         "supports_system_role": True,
         "supports_temperature": True,
         "max_tokens_key": "max_tokens",
         "max_tokens_value": 200,
     },
     # Moondream
-    "moondream": {
+    "moondream:1.8b": {
         "supports_system_role": True,
         "supports_temperature": True,
         "max_tokens_key": "max_tokens",
@@ -331,6 +334,18 @@ class OpenAIGenericClient:
                 response = self._client.chat.completions.create(  # type: ignore[call-overload]
                     **payload
                 )
+
+                # Debug: Log raw response
+                self._logger.debug(f"API Response: {response}")
+                self._logger.debug(f"Response type: {type(response)}")
+                if hasattr(response, 'choices'):
+                    self._logger.debug(f"Choices: {response.choices}")
+                    if response.choices and len(response.choices) > 0:
+                        self._logger.debug(f"First choice: {response.choices[0]}")
+                        if hasattr(response.choices[0], 'message'):
+                            self._logger.debug(f"Message: {response.choices[0].message}")
+                            if hasattr(response.choices[0].message, 'content'):
+                                self._logger.debug(f"Content: {response.choices[0].message.content}")
 
                 # Check response validity
                 if (
@@ -556,6 +571,11 @@ class OpenAIGenericClient:
         # Add temperature if supported
         if supports_temp:
             request_params["temperature"] = 0.1
+
+        # Add reasoning_effort for GPT-5 models
+        reasoning_effort = model_quirks.get("reasoning_effort")
+        if reasoning_effort:
+            request_params["reasoning_effort"] = reasoning_effort
 
         # Use the model-specific param for max tokens
         request_params[str(max_tokens_key)] = max_tokens_value

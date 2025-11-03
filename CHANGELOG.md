@@ -4,6 +4,53 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2] - 2025-11-03
+
+### Added
+
+* **Qwen3-VL 8B Support**: Added newest Qwen vision model to Ollama configuration
+  - qwen3-vl:8b - Most powerful Qwen vision model (256K context, advanced OCR in 32 languages, visual coding)
+  - Excellent performance: 3/3 test images passed in 10 seconds
+  - Accurate captions with proper `[trigger]` token formatting
+
+### Changed
+
+* **Configuration System Simplification**: Streamlined config file structure
+  - Default config now at `~/.config/gen-captions/default.yaml` (auto-created from bundled template)
+  - Local overrides at `~/.config/gen-captions/local.yaml` (renamed from config.yaml)
+  - Removed all fallback paths to current working directory
+  - Fail-fast if config directory doesn't exist (created automatically on first run)
+  - Removed CONFIG_SEARCH_PATHS complexity
+
+* **Ollama Model Curation**: Removed non-working models from default.yaml
+  - Removed LLaVA family (llava:7b, llava-llama3:8b, llava-phi3:3.8b, bakllava:7b) - poor instruction following
+  - Removed moondream:1.8b - empty responses, wrong token format
+  - Removed older MiniCPM versions (v2.5, v2.6, o2.6) - superseded by v4 and v4.5
+  - Kept only verified working models: qwen3-vl:8b, qwen2.5vl:7b, qwen2.5vl:3b, minicpm-v4.5, minicpm-v4
+
+### Fixed
+
+* **PyInstaller Build Process**: Fixed `make build` target
+  - Changed from `uv run pyinstaller` to proper environment-aware build
+  - Added `install` dependency to ensure `uv sync --all-extras` runs first
+  - Binary now builds correctly with Python 3.14 and all dependencies
+  - Verified working 67MB binary installed to `/opt/bin/gen-captions`
+
+### Technical
+
+* **Modified Files**:
+  - `Makefile` - Fixed build target to run `install` before PyInstaller
+  - `gen_captions/default.yaml` - Updated Ollama models section, added qwen3-vl:8b
+  - `gen_captions/config_manager.py` - Simplified config path logic, removed search paths
+  - `gen_captions/cli.py` - Updated config path references
+
+### Testing
+
+* ✅ PyInstaller build verified (67MB binary, all dependencies included)
+* ✅ Binary execution tested with Ollama (qwen3-vl:8b)
+* ✅ All 3 test images generated valid captions in 10 seconds
+* ✅ Configuration auto-creation working correctly
+
 ## [0.5.1] - 2025-11-02
 
 ### Added

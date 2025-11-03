@@ -5,7 +5,6 @@ configurations for the application.
 """
 
 import os
-import shutil
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -18,11 +17,8 @@ from .config_schema import CONFIG_VERSION, ProcessingConfig
 class ConfigManager:
     """Manages loading, merging, and saving YAML configs."""
 
-    CONFIG_SEARCH_PATHS = [
-        Path.home() / ".config" / "gen-captions" / "config.yaml",
-        Path.cwd() / "gen-captions.yaml",
-        Path.cwd() / ".gen-captions.yaml",
-    ]
+    # Only use local.yaml in user config directory
+    LOCAL_CONFIG_PATH = Path.home() / ".config" / "gen-captions" / "local.yaml"
 
     def __init__(self, console: Optional[Console] = None):
         """Initialize configuration manager."""
@@ -33,9 +29,8 @@ class ConfigManager:
 
     def get_default_config_path(self) -> Path:
         """Return path to bundled default.yaml."""
-        # Use path relative to this module
-        # Works both in dev and PyInstaller binary
-        return Path(__file__).parent / "default.yaml"
+        # Use path in user config directory
+        return Path.home() / ".config" / "gen-captions" / "default.yaml"
 
     def load_default_config(self) -> Dict[str, Any]:
         """Load bundled default configuration."""
@@ -44,6 +39,9 @@ class ConfigManager:
 
         config_path = self.get_default_config_path()
 
+        # Ensure config directory exists
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+
         try:
             with open(
                 config_path, "r", encoding="utf-8"
@@ -51,12 +49,21 @@ class ConfigManager:
                 self._default_config = yaml.safe_load(f)
             return self._default_config
         except FileNotFoundError:
-            self.console.print(
-                f"[bold red]Error:[/] Default config not "
-                f"found: {config_path}"
-            )
-            # Return minimal fallback
-            return self._get_fallback_config()
+            # Copy from bundled default if not exists
+            bundled_default = Path(__file__).parent / "default.yaml"
+            if bundled_default.exists():
+                import shutil
+                shutil.copy(bundled_default, config_path)
+                with open(config_path, "r", encoding="utf-8") as f:
+                    self._default_config = yaml.safe_load(f)
+                return self._default_config
+            else:
+                self.console.print(
+                    f"[bold red]Error:[/] Default config not "
+                    f"found: {config_path}"
+                )
+                # Return minimal fallback
+                return self._get_fallback_config()
         except yaml.YAMLError as e:
             self.console.print(
                 f"[bold red]Error parsing default "
@@ -77,10 +84,9 @@ class ConfigManager:
                 f"points to non-existent file: {path}"
             )
 
-        # Search standard paths
-        for path in self.CONFIG_SEARCH_PATHS:
-            if path.exists():
-                return path
+        # Only check single local config path
+        if self.LOCAL_CONFIG_PATH.exists():
+            return self.LOCAL_CONFIG_PATH
 
         return None
 
@@ -191,8 +197,8 @@ class ConfigManager:
     ) -> Path:
         """Create a local config template file."""
         if output_path is None:
-            # Use first search path (user config dir)
-            output_path = self.CONFIG_SEARCH_PATHS[0]
+            # Use local config path
+            output_path = self.LOCAL_CONFIG_PATH
 
         # Create parent directories
         output_path.parent.mkdir(parents=True, exist_ok=True)
