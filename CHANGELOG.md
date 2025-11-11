@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2025-11-11
+
+### Added
+
+* **LLM-powered Removal Workflow**
+  - New `gen-captions remove` command analyzes datasets for gender/solo mismatches and moves rejected images into `<image-dir>/removed` along with caption sidecars.
+  - CLI accepts `--keep-gender men|women` and `--keep-solo yes|true|1` / `no|false|0` filters to specify what should remain in the dataset; everything else is moved. Legacy `--gender/--solo` aliases were removed to avoid confusion.
+  - Structured JSON is printed for every image, and detailed probabilities/reasons are logged to `gen_captions.log`.
+  - Configurable thresholds live under `removal.thresholds` in the YAML config with sensible defaults (0.9).
+
+### Changed
+
+* Version metadata now comes exclusively from `pyproject.toml` at runtime.
+  - `Config` falls back to parsing `pyproject.toml` when importlib metadata is unavailable (editable installs, PyInstaller builds).
+  - Removed the legacy `gen_captions/VERSION` file, force-include wiring, and PyInstaller data entry; PyInstaller now bundles `pyproject.toml` instead.
+* LM Studio default model switched to `qwen/qwen2.5-vl-7b`, with documentation and configs updated accordingly.
+* README docs clarify `remove` usage, filter semantics, and log output to match the new workflow.
+* `gen-captions remove` now uses `--keep-gender/--keep-solo` (old `--gender/--solo` remain as aliases) and enforces "keep" semantics for the configured thresholds so we actually retain the requested cohort instead of removing it.
+
+### Testing
+
+* ✅ `uv run pytest tests/unit/test_config.py`
+
 ## [0.5.2] - 2025-11-03
 
 ### Added

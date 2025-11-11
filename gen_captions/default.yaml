@@ -60,16 +60,16 @@ backends:
     # Start: LM Studio UI → Local Server tab → Start Server
     # Default port: 1234
     # No API key required (runs locally)
-    model: "qwen/qwen3-vl-8b"
+    model: "qwen/qwen2.5-vl-7b"
     base_url: http://localhost:1234/v1
 
     # Available Models (descriptions shown in 'config show')
     # Note: Only models YOU have downloaded will work
     models:
+      qwen/qwen2.5-vl-7b:
+        description: "RECOMMENDED: Qwen2.5-VL 7B - Dynamic resolution, OCR, chart parsing"
       qwen/qwen3-vl-8b:
         description: "Vision-capable: Qwen3-VL 8B - Enhanced visual perception (up to 1M context)"
-      qwen/qwen2.5-vl-7b:
-        description: "Vision-capable: Qwen2.5-VL 7B - Dynamic resolution, OCR, chart parsing"
       google/gemma-3-27b:
         description: "Vision-capable: Google Gemma 3 27B - Multimodal (128K context, up to 8K output)"
       mistralai/magistral-small-2509:
@@ -113,6 +113,27 @@ caption:
 
   # User prompt: Instructions for each image
   user_prompt: "Describe the content of this image as a detailed and accurate caption for a stable diffusion model prompt and begin the response with one of two opening lines based on the gender of the person in the image. The caption should be short, concise and accurate, and should not contain any information not immediately descriptive of the image. Avoid all words with single quotes, double quotes, or any other special characters.\n\nIf the person is woman, start the response with:\n[trigger], a woman,\n\nIf the person is a man, start the response with:\n[trigger], a man,\n\nDon't forget the brackets around [trigger]."
+
+# Removal Analysis Prompts
+removal:
+  # Probability thresholds for matching dataset requirements
+  thresholds:
+    is_solo_p: 0.9
+    is_woman_p: 0.9
+    is_man_p: 0.9
+
+  system_prompt: |
+    You are a precise dataset validator. You must respond ONLY with strict JSON matching the schema below. Do not add explanations, Markdown fences, prefixes, or extra keys.
+    Schema:
+    {
+      "thought": "short reason about the scene",
+      "is_solo_p": <float 0-1>,
+      "is_woman_p": <float 0-1>,
+      "is_man_p": <float 0-1>
+    }
+
+  user_prompt: |
+    Inspect the image carefully and output just one compact JSON object that follows the exact schema. Probabilities must be floats between 0 and 1. Do not wrap the JSON in code fences or add commentary.
 
 # Processing Configuration
 processing:

@@ -1,11 +1,11 @@
-"""A module to manage the configuration of the application.
-
-It encapsulates the configuration settings for the application.
-"""
+"""Application configuration loading and helpers."""
 
 import os
-import pkgutil
-from typing import Any, Dict, Optional
+from importlib import metadata as importlib_metadata
+from pathlib import Path
+from typing import Any, Dict, Optional, cast
+
+import tomllib
 
 from .config_manager import ConfigManager
 
@@ -32,15 +32,12 @@ class Config:
             self._console
         )
 
-        # Load VERSION
-        ver = pkgutil.get_data(__name__, "VERSION")
-        ver = (
-            ver.decode("utf-8").strip() if ver else "0.0.0"
-        )
-        self._version = ver
+        self._version = self._load_version()
 
         # Load YAML configuration
-        self._yaml_config = self._config_manager.get_config()
+        self._yaml_config: Dict[str, Any] = (
+            self._config_manager.get_config()
+        )
 
         # Validate config
         errors = self._config_manager.validate_config(
@@ -84,37 +81,37 @@ class Config:
     @property
     def THREAD_POOL(self) -> int:
         """Return thread pool size from YAML."""
-        return self._yaml_config.get("processing", {}).get(
-            "thread_pool", 10
-        )
+        processing = self._get_processing_config()
+        value = processing.get("thread_pool", 10)
+        return int(value)
 
     @property
     def THROTTLE_RETRIES(self) -> int:
         """Return throttle retries from YAML."""
-        return self._yaml_config.get("processing", {}).get(
-            "throttle_retries", 10
-        )
+        processing = self._get_processing_config()
+        value = processing.get("throttle_retries", 10)
+        return int(value)
 
     @property
     def THROTTLE_BACKOFF_FACTOR(self) -> float:
         """Return backoff factor from YAML."""
-        return self._yaml_config.get("processing", {}).get(
-            "throttle_backoff_factor", 2.0
-        )
+        processing = self._get_processing_config()
+        value = processing.get("throttle_backoff_factor", 2.0)
+        return float(value)
 
     @property
     def LOG_LEVEL(self) -> str:
         """Return log level from YAML."""
-        return self._yaml_config.get("processing", {}).get(
-            "log_level", "INFO"
-        )
+        processing = self._get_processing_config()
+        level = processing.get("log_level", "INFO")
+        return str(level)
 
     @property
     def THROTTLE_SUBMISSION_RATE(self) -> float:
         """Return submission rate from YAML."""
-        return self._yaml_config.get("processing", {}).get(
-            "throttle_submission_rate", 1.0
-        )
+        processing = self._get_processing_config()
+        value = processing.get("throttle_submission_rate", 1.0)
+        return float(value)
 
     def set_backend(self, backend: str):
         """Set active model profile and load its configuration.
@@ -130,7 +127,7 @@ class Config:
         backends = self._yaml_config.get("backends", {})
         backend_config = backends.get(backend)
 
-        if not backend_config:
+        if not isinstance(backend_config, dict):
             self._console.print(
                 f"[bold red]Error:[/] Unknown model profile: "
                 f"{backend}"
@@ -163,8 +160,12 @@ class Config:
                 )
 
         # Model and base_url from YAML only
-        self._llm_model = backend_config.get("model")
-        self._llm_base_url = backend_config.get("base_url")
+        self._llm_model = cast(
+            Optional[str], backend_config.get("model")
+        )
+        self._llm_base_url = cast(
+            Optional[str], backend_config.get("base_url")
+        )
 
         # Show configuration
         self._console.print(
@@ -179,8 +180,87 @@ class Config:
         Returns:
             Dictionary with caption configuration
         """
-        return self._yaml_config.get("caption", {})
+        caption = self._yaml_config.get("caption", {})
+        return caption if isinstance(caption, dict) else {}
+
+    def get_removal_config(self) -> Dict[str, Any]:
+        """Get removal analysis configuration."""
+        removal = self._yaml_config.get("removal", {})
+        return removal if isinstance(removal, dict) else {}
+
+    def get_removal_thresholds(self) -> Dict[str, float]:
+        """Return normalized probability thresholds for removal decisions."""
+        removal_cfg = self.get_removal_config()
+        raw_default = removal_cfg.get("decision_threshold", 0.9)
+        default_threshold = self._coerce_probability(
+            raw_default, 0.9
+        )
+
+        thresholds_raw = removal_cfg.get("thresholds", {}) or {}
+        thresholds_src = (
+            thresholds_raw
+            if isinstance(thresholds_raw, dict)
+            else {}
+        )
+        normalized: Dict[str, float] = {
+            key: self._coerce_probability(
+                value, default_threshold
+            )
+            for key, value in thresholds_src.items()
+        }
+
+        for key in ("is_solo_p", "is_woman_p", "is_man_p"):
+            normalized.setdefault(key, default_threshold)
+
+        return normalized
+
+    @staticmethod
+    def _coerce_probability(
+        value: Any, fallback: float
+    ) -> float:
+        """Convert raw probability inputs into [0, 1] floats."""
+        try:
+            numeric = float(value)
+        except (TypeError, ValueError):
+            return fallback
+
+        if numeric < 0:
+            return 0.0
+        if numeric > 1:
+            return 1.0
+        return numeric
+
+    def _get_processing_config(self) -> Dict[str, Any]:
+        processing = self._yaml_config.get("processing", {})
+        return processing if isinstance(processing, dict) else {}
 
     def get_version(self):
         """Return the current version."""
         return self.VERSION
+
+    def _load_version(self) -> str:
+        """Return package version using pyproject metadata as the source."""
+        try:
+            return importlib_metadata.version("gen-captions")
+        except importlib_metadata.PackageNotFoundError:
+            return self._load_version_from_pyproject()
+        except Exception:
+            return "0.0.0"
+
+    def _load_version_from_pyproject(self) -> str:
+        project_root = Path(__file__).resolve().parent.parent
+        pyproject_path = project_root / "pyproject.toml"
+        if not pyproject_path.exists():
+            return "0.0.0"
+
+        try:
+            with pyproject_path.open("rb") as handle:
+                data = tomllib.load(handle)
+        except (OSError, tomllib.TOMLDecodeError):
+            return "0.0.0"
+
+        project_section = data.get("project", {})
+        version = project_section.get("version")
+        if isinstance(version, str) and version.strip():
+            return version.strip()
+        return "0.0.0"

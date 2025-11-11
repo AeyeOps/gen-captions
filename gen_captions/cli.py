@@ -1,6 +1,12 @@
 """Command-line interface for the caption generator."""
 
+from __future__ import annotations
+
 import os
+from importlib import metadata as importlib_metadata
+from logging import Logger
+from pathlib import Path
+from typing import List, Optional, Tuple
 
 import typer
 from rich.console import Console
@@ -9,20 +15,94 @@ from .config import Config
 from .encoding_fixer import fix_encoding_issues
 from .image_processor import process_images
 from .logger_config import CustomLogger
+from .removal_processor import remove_mismatched_images
 from .system_info import print_system_info
 
-# Module-level initialization
 console = Console()
-config = Config()
-logger = CustomLogger(
-    console=console, name="gen_captions", level=config.LOG_LEVEL
-).logger
+_CONFIG: Optional[Config] = None
+_LOGGER: Optional[Logger] = None
+
+try:
+    _APP_VERSION = importlib_metadata.version("gen-captions")
+except importlib_metadata.PackageNotFoundError:
+    _APP_VERSION = "0.0.0"
 
 app = typer.Typer(
-    help=f"Caption Generator v{config.VERSION} - "
-    "Generate image captions with OpenAI or GROK.",
+    help=f"Caption Generator v{_APP_VERSION} - Generate image captions with OpenAI or GROK.",
     invoke_without_command=True,
 )
+
+
+def _config_error(exc: Exception) -> None:
+    console.print(
+        "[bold red]Configuration error:[/] Unable to load ~/.config/gen-captions/default.yaml"
+    )
+    console.print(
+        "Run [cyan]gen-captions config init[/] to (re)create the configuration files."
+    )
+    if exc:
+        console.print(f"[yellow]Details:[/] {exc}")
+
+
+def ensure_config() -> Config:
+    global _CONFIG
+    if _CONFIG is None:
+        try:
+            _CONFIG = Config()
+        except Exception as exc:  # pragma: no cover - defensive
+            _config_error(exc)
+            raise typer.Exit(1) from exc
+    return _CONFIG
+
+
+def ensure_logger() -> Logger:
+    global _LOGGER
+    if _LOGGER is None:
+        cfg = ensure_config()
+        _LOGGER = CustomLogger(
+            console=console, name="gen_captions", level=cfg.LOG_LEVEL
+        ).logger
+    return _LOGGER
+
+
+def _parse_solo_flag(value: Optional[str]) -> Optional[bool]:
+    """Normalize solo option values into booleans indicating what to keep."""
+    if value is None:
+        return None
+
+    normalized = value.strip().lower()
+    truthy = {"yes", "true", "1", "y"}
+    falsy = {"no", "false", "0", "n"}
+
+    if normalized in truthy:
+        return True
+    if normalized in falsy:
+        return False
+
+    raise typer.BadParameter(
+        "--keep-solo accepts yes/no, true/false, 1/0"
+    )
+
+
+def _config_snapshot_rows() -> List[Tuple[str, str]]:
+    cfg = ensure_config()
+    thresholds = cfg.get_removal_thresholds()
+    snapshot: List[Tuple[str, str]] = [
+        ("processing.thread_pool", str(cfg.THREAD_POOL)),
+        (
+            "processing.throttle_submission_rate",
+            f"{cfg.THROTTLE_SUBMISSION_RATE:.2f}",
+        ),
+        ("processing.throttle_retries", str(cfg.THROTTLE_RETRIES)),
+        (
+            "processing.throttle_backoff_factor",
+            f"{cfg.THROTTLE_BACKOFF_FACTOR:.2f}",
+        ),
+        ("processing.log_level", cfg.LOG_LEVEL),
+    ]
+    for key in ("is_solo_p", "is_woman_p", "is_man_p"):
+        snapshot.append((f"removal.{key}", f"{thresholds.get(key, 0):.2f}"))
+    return snapshot
 
 
 @app.callback(invoke_without_command=True)
@@ -36,13 +116,26 @@ def main(ctx: typer.Context):
 @app.command(help="Show the current version.")
 def version():
     """Display the application version."""
-    console.print(f"Caption Generator v{config.VERSION}")
+    cfg = ensure_config()
+    console.print(f"Caption Generator v{cfg.VERSION}")
+
+
+@app.command(help="Create a template .env file for API keys.")
+def gen_env():
+    """Generate a .env or .envN file with placeholder keys."""
+    target = Path(".env")
+    counter = 0
+    while target.exists():
+        counter += 1
+        target = Path(f".env{counter}")
+
+    template = "OPENAI_API_KEY=\n" "GROK_API_KEY=\n"
+    target.write_text(template, encoding="utf-8")
+    console.print(f"[green]Created {target.name}[/]")
 
 
 # Config command group
-config_app = typer.Typer(
-    help="Manage YAML configuration files"
-)
+config_app = typer.Typer(help="Manage YAML configuration files")
 app.add_typer(config_app, name="config")
 
 
@@ -108,14 +201,13 @@ def show(
     import yaml
     from rich.syntax import Syntax
 
-    config_dict = config._yaml_config
+    cfg = ensure_config()
+    config_dict = cfg._yaml_config
 
     if backend:
         backends = config_dict.get("backends", {})
         if backend not in backends:
-            console.print(
-                f"[red]Unknown backend:[/] {backend}"
-            )
+            console.print(f"[red]Unknown backend:[/] {backend}")
             raise typer.Exit(code=1)
         config_dict = {backend: backends[backend]}
 
@@ -140,8 +232,9 @@ def get(
     ),
 ):
     """Get a specific configuration value."""
+    cfg = ensure_config()
     keys = key.split(".")
-    value = config._yaml_config
+    value = cfg._yaml_config
 
     try:
         for k in keys:
@@ -267,6 +360,7 @@ def fix_encoding(
     ),
 ):
     """Fix encoding issues in text files."""
+    logger = ensure_logger()
     caption_directory = (
         os.path.abspath(caption_dir) if caption_dir else None
     )
@@ -274,7 +368,7 @@ def fix_encoding(
         os.path.abspath(config_dir) if config_dir else None
     )
 
-    print_system_info(console, logger)
+    print_system_info(console, logger, _config_snapshot_rows())
     console.print()
 
     # If the directories are not provided, print a warning and exit
@@ -310,7 +404,9 @@ def generate(
     Supports cloud providers (OpenAI, GROK) and local servers
     (LM Studio, Ollama).
     """
-    print_system_info(console, logger)
+    logger = ensure_logger()
+    cfg = ensure_config()
+    print_system_info(console, logger, _config_snapshot_rows())
 
     image_directory = (
         os.path.abspath(image_dir) if image_dir else None
@@ -328,12 +424,14 @@ def generate(
         )
         raise typer.Exit(code=1)
 
-    config.set_backend(model_profile)
+    cfg.set_backend(model_profile)
 
     # Verify API key for cloud providers only
     if model_profile.lower() not in ("lmstudio", "ollama"):
-        if not config.LLM_API_KEY:
-            logger.error("LLM_API_KEY is not set in the environment")
+        if not cfg.LLM_API_KEY:
+            logger.error(
+                "LLM_API_KEY is not set in the environment"
+            )
             raise typer.Exit(code=1)
 
     if not image_directory:
@@ -347,9 +445,101 @@ def generate(
         image_directory,
         caption_directory,
         backend=model_profile,
-        config=config,
+        config=cfg,
         console=console,
         logger=logger,
+    )
+
+
+@app.command(
+    help=(
+        "Remove images that do not meet gender/solo dataset requirements "
+        "using LLM-based visual analysis."
+    )
+)
+def remove(
+    image_dir: str = typer.Option(
+        ..., help="Directory containing images."
+    ),
+    model_profile: str = typer.Option(
+        ...,
+        help="Model profile: openai, grok, lmstudio, or ollama.",
+    ),
+    keep_gender: Optional[str] = typer.Option(
+        None,
+        "--keep-gender",
+        help="Gender to KEEP in the dataset (men or women). Others are removed.",
+    ),
+    keep_solo: Optional[str] = typer.Option(
+        None,
+        "--keep-solo",
+        help=(
+            "Solo expectation: yes/true/1 keeps single-subject shots; "
+            "no/false/0 keeps group scenes."
+        ),
+    ),
+):
+    """Remove dataset outliers that fail the provided filters."""
+    logger = ensure_logger()
+    cfg = ensure_config()
+    if keep_gender is None and keep_solo is None:
+        logger.error(
+            "At least one of --keep-gender or --keep-solo must be provided"
+        )
+        raise typer.Exit(code=1)
+
+    desired_gender: Optional[str] = None
+    if keep_gender:
+        normalized_gender = keep_gender.strip().lower()
+        if normalized_gender not in {"men", "women"}:
+            raise typer.BadParameter(
+                "--keep-gender accepts 'men' or 'women'"
+            )
+        desired_gender = normalized_gender
+
+    solo_flag = _parse_solo_flag(keep_solo)
+
+    print_system_info(console, logger, _config_snapshot_rows())
+
+    image_directory = os.path.abspath(image_dir)
+    if not os.path.isdir(image_directory):
+        logger.error(
+            "Error: --image-dir must point to an existing directory"
+        )
+        raise typer.Exit(code=1)
+
+    valid_profiles = ["openai", "grok", "lmstudio", "ollama"]
+    if model_profile.lower() not in valid_profiles:
+        logger.error(
+            f"Error: Invalid model profile '{model_profile}'. "
+            f"Choose from: {', '.join(valid_profiles)}"
+        )
+        raise typer.Exit(code=1)
+
+    cfg.set_backend(model_profile)
+
+    if model_profile.lower() not in ("lmstudio", "ollama"):
+        if not cfg.LLM_API_KEY:
+            logger.error(
+                "LLM_API_KEY is not set in the environment"
+            )
+            raise typer.Exit(code=1)
+
+    summary = remove_mismatched_images(
+        image_directory=image_directory,
+        backend=model_profile,
+        config=cfg,
+        console=console,
+        logger=logger,
+        desired_gender=desired_gender,
+        require_solo=solo_flag,
+    )
+
+    console.print(
+        (
+            "[bold cyan]Summary:[/] processed {processed} image(s), removed "
+            "{removed}. Files moved to {destination}."
+        ).format(**summary)
     )
 
 
@@ -360,12 +550,12 @@ def dedupe(
     image_dir: str = typer.Option(
         ".",
         "--image-dir",
-        help="Directory containing images to deduplicate (default: current directory)"
+        help="Directory containing images to deduplicate (default: current directory)",
     ),
     yolo: bool = typer.Option(
         False,
         "--yolo",
-        help="Auto-execute all recommendations without prompting"
+        help="Auto-execute all recommendations without prompting",
     ),
 ):
     """Find and remove duplicate images using multiple detection layers.
@@ -375,7 +565,9 @@ def dedupe(
     """
     from .dedupe import dedupe_command
 
-    dedupe_command(image_dir=image_dir, yolo=yolo, console=console)
+    dedupe_command(
+        image_dir=image_dir, yolo=yolo, console=console
+    )
 
 
 if __name__ == "__main__":

@@ -31,7 +31,7 @@ class FileOperations:
             True if successful, False otherwise
         """
         try:
-            src_path = Path(file_info['path'])
+            src_path = Path(file_info["path"])
 
             # Determine destination path
             dst_path = self.duplicates_dir / src_path.name
@@ -41,16 +41,19 @@ class FileOperations:
             while dst_path.exists():
                 stem = src_path.stem
                 suffix = src_path.suffix
-                dst_path = self.duplicates_dir / f"{stem}_{counter}{suffix}"
+                dst_path = (
+                    self.duplicates_dir
+                    / f"{stem}_{counter}{suffix}"
+                )
                 counter += 1
 
             # Move the image file
             shutil.move(str(src_path), str(dst_path))
 
             # Move caption file if it exists
-            caption_src = src_path.with_suffix('.txt')
+            caption_src = src_path.with_suffix(".txt")
             if caption_src.exists():
-                caption_dst = dst_path.with_suffix('.txt')
+                caption_dst = dst_path.with_suffix(".txt")
                 shutil.move(str(caption_src), str(caption_dst))
 
             return True
@@ -73,6 +76,6 @@ class FileOperations:
         for file_info in duplicates:
             if self.move_to_duplicates(file_info):
                 success_count += 1
-                total_bytes += file_info['size']
+                total_bytes += file_info["size"]
 
         return success_count, total_bytes

@@ -2,8 +2,11 @@
 
 # pylint: disable=duplicate-code
 
+import json
+import re
 import time
 from logging import Logger
+from typing import Any, Dict, Optional
 
 import openai
 from requests import HTTPError
@@ -228,10 +231,16 @@ class OpenAIGenericClient:
             return True
 
         # Parse base URL to extract host and port
-        parsed_url = urllib.parse.urlparse(self._config.LLM_BASE_URL)
+        parsed_url = urllib.parse.urlparse(
+            self._config.LLM_BASE_URL
+        )
         hostname = parsed_url.hostname or "localhost"
         # Ensure hostname is str, not bytes
-        host = hostname.decode() if isinstance(hostname, bytes) else hostname
+        host = (
+            hostname.decode()
+            if isinstance(hostname, bytes)
+            else hostname
+        )
         port = parsed_url.port
 
         if not port:
@@ -248,7 +257,9 @@ class OpenAIGenericClient:
 
             if result != 0:
                 # Server not reachable - raise backend-specific error
-                self._raise_server_not_running_error(backend, host, port)
+                self._raise_server_not_running_error(
+                    backend, host, port
+                )
 
             return True
 
@@ -256,7 +267,9 @@ class OpenAIGenericClient:
             self._logger.error(
                 "Socket error checking %s server: %s", backend, e
             )
-            self._raise_server_not_running_error(backend, host, port)
+            self._raise_server_not_running_error(
+                backend, host, port
+            )
 
         return False
 
@@ -301,7 +314,10 @@ class OpenAIGenericClient:
 
         self._console.print(msg)
         self._logger.error(
-            "%s server not reachable at %s:%s", backend, host, port
+            "%s server not reachable at %s:%s",
+            backend,
+            host,
+            port,
         )
 
         raise ConnectionError(
@@ -330,22 +346,43 @@ class OpenAIGenericClient:
         while retries < self._config.THROTTLE_RETRIES:
             try:
                 # Build request params dynamically
-                payload = self._build_chat_request(base64_image)
+                payload = self._build_chat_request(
+                    base64_image,
+                    self._config.get_caption_config(),
+                )
                 response = self._client.chat.completions.create(  # type: ignore[call-overload]
                     **payload
                 )
 
                 # Debug: Log raw response
                 self._logger.debug(f"API Response: {response}")
-                self._logger.debug(f"Response type: {type(response)}")
-                if hasattr(response, 'choices'):
-                    self._logger.debug(f"Choices: {response.choices}")
-                    if response.choices and len(response.choices) > 0:
-                        self._logger.debug(f"First choice: {response.choices[0]}")
-                        if hasattr(response.choices[0], 'message'):
-                            self._logger.debug(f"Message: {response.choices[0].message}")
-                            if hasattr(response.choices[0].message, 'content'):
-                                self._logger.debug(f"Content: {response.choices[0].message.content}")
+                self._logger.debug(
+                    f"Response type: {type(response)}"
+                )
+                if hasattr(response, "choices"):
+                    self._logger.debug(
+                        f"Choices: {response.choices}"
+                    )
+                    if (
+                        response.choices
+                        and len(response.choices) > 0
+                    ):
+                        self._logger.debug(
+                            f"First choice: {response.choices[0]}"
+                        )
+                        if hasattr(
+                            response.choices[0], "message"
+                        ):
+                            self._logger.debug(
+                                f"Message: {response.choices[0].message}"
+                            )
+                            if hasattr(
+                                response.choices[0].message,
+                                "content",
+                            ):
+                                self._logger.debug(
+                                    f"Content: {response.choices[0].message.content}"
+                                )
 
                 # Check response validity
                 if (
@@ -404,19 +441,20 @@ class OpenAIGenericClient:
                 code = 0
                 if isinstance(re, openai.APIConnectionError):
                     # Check for connection refusal
-                    if (
-                        "Connection refused" in str(re)
-                        or "Failed to connect" in str(re)
-                    ):
+                    if "Connection refused" in str(
+                        re
+                    ) or "Failed to connect" in str(re):
                         backend = self._config._current_backend
                         if backend in ("lmstudio", "ollama"):
                             # Server went down during processing
                             import urllib.parse
+
                             parsed_url = urllib.parse.urlparse(
                                 self._config.LLM_BASE_URL
                             )
                             hostname = (
-                                parsed_url.hostname or "localhost"
+                                parsed_url.hostname
+                                or "localhost"
                             )
                             # Ensure hostname is str
                             host = (
@@ -425,7 +463,9 @@ class OpenAIGenericClient:
                                 else hostname
                             )
                             port = parsed_url.port or (
-                                1234 if backend == "lmstudio" else 11434
+                                1234
+                                if backend == "lmstudio"
+                                else 11434
                             )
                             self._raise_server_not_running_error(
                                 backend, host, port
@@ -483,8 +523,186 @@ class OpenAIGenericClient:
         )
         return ""
 
+    def generate_removal_metadata(
+        self,
+        image_path: str,
+    ) -> Dict[str, Any]:
+        """Return structured metadata used to decide if an image is removed."""
+        # pylint: disable=broad-except
+        self._logger.info(
+            "Analyzing image for removal criteria: %s",
+            image_path,
+        )
+        base64_image = encode_image(image_path)
+        retries = 0
+
+        removal_config = dict(
+            self._config.get_removal_config() or {}
+        )
+        self._logger.debug(
+            "[Removal] prompts for %s | system=%s | user=%s",
+            image_path,
+            removal_config.get("system_prompt", "")[:200],
+            removal_config.get("user_prompt", "")[:200],
+        )
+
+        while retries < self._config.THROTTLE_RETRIES:
+            try:
+                payload = self._build_chat_request(
+                    base64_image, removal_config
+                )
+                response = self._client.chat.completions.create(  # type: ignore[call-overload]
+                    **payload
+                )
+
+                if (
+                    response
+                    and response.choices
+                    and response.choices[0]
+                    and response.choices[0].message
+                    and response.choices[0].message.content
+                ):
+                    content = response.choices[
+                        0
+                    ].message.content.strip()
+                    self._logger.debug(
+                        "[Removal] raw response for %s: %s",
+                        image_path,
+                        content,
+                    )
+                    metadata = self._parse_removal_response(
+                        content
+                    )
+                    if metadata:
+                        self._logger.debug(
+                            "[Removal] parsed metadata for %s: %s",
+                            image_path,
+                            metadata,
+                        )
+                        return metadata
+
+                    self._logger.info(
+                        "Structured response missing or invalid JSON for %s",
+                        image_path,
+                    )
+                    self._logger.warning(
+                        "[Removal] Could not parse response for %s: %s",
+                        image_path,
+                        content,
+                    )
+                    retries += 1
+                    time.sleep(1)
+                    continue
+
+                self._logger.warning(
+                    "[Removal] Empty response body for %s", image_path
+                )
+                return {}
+
+            except (
+                openai.RateLimitError,
+                HTTPError,
+                openai.APIConnectionError,
+            ) as re:
+                code = 0
+                if isinstance(re, openai.APIConnectionError):
+                    if "Connection refused" in str(
+                        re
+                    ) or "Failed to connect" in str(re):
+                        backend = self._config._current_backend
+                        if backend in ("lmstudio", "ollama"):
+                            import urllib.parse
+
+                            parsed_url = urllib.parse.urlparse(
+                                self._config.LLM_BASE_URL
+                            )
+                            hostname = (
+                                parsed_url.hostname
+                                or "localhost"
+                            )
+                            host = (
+                                hostname.decode()
+                                if isinstance(hostname, bytes)
+                                else hostname
+                            )
+                            port = parsed_url.port or (
+                                1234
+                                if backend == "lmstudio"
+                                else 11434
+                            )
+                            self._raise_server_not_running_error(
+                                backend, host, port
+                            )
+
+                    if re.code:
+                        code = int(re.code)
+                elif isinstance(re, openai.RateLimitError):
+                    code = re.status_code
+                elif isinstance(re, HTTPError):
+                    code = re.response.status_code
+
+                if code == 429:
+                    wait_time = (
+                        self._config.THROTTLE_BACKOFF_FACTOR
+                        ** (retries + 1)
+                    )
+                    self._logger.warning(
+                        (
+                            "Rate limit exceeded during removal analysis. "
+                            "Retrying in %s seconds..."
+                        ),
+                        wait_time,
+                    )
+                    self._console.print(
+                        (
+                            "[bold yellow]Rate limit for "
+                            f"{image_path}, retrying in {wait_time} second(s)...[/]"
+                        )
+                    )
+                    time.sleep(wait_time)
+                    retries += 1
+                else:
+                    self._logger.error(
+                        "API/HTTP error during removal analysis for %s: %s",
+                        image_path,
+                        re,
+                    )
+                    if (
+                        code == 400
+                        and "model has crashed" in str(re).lower()
+                    ):
+                        crash_msg = (
+                            "Local model reported a crash. Restart the LM Studio server "
+                            "(Local Server tab → Stop → Start) and rerun this command."
+                        )
+                        self._logger.error(crash_msg)
+                        break
+                    self._console.print(
+                        f"[red]API/HTTP error for {image_path}: {re}[/]"
+                    )
+                    break
+
+            except (
+                Exception
+            ) as exc:  # pragma: no cover - defensive logging
+                self._logger.exception(
+                    "Error generating removal metadata: %s", exc
+                )
+                self._console.print(
+                    f"[bold red]Error generating removal metadata for {image_path}: {exc}[/]"
+                )
+                break
+
+        self._console.print(
+            (
+                "[bold red]Failed to analyze removal criteria ",
+                f"after {retries} retries for {image_path}[/]",
+            )
+        )
+        return {}
+
     def _build_chat_request(
-        self, base64_image: str
+        self, base64_image: str, prompt_config: Dict[str, Any]
     ) -> dict[str, object]:
         """Build request parameters with model quirks."""
         model_name = (
@@ -496,12 +714,11 @@ class OpenAIGenericClient:
         # Get model quirks from hardcoded config
         model_quirks = MODEL_CONFIG.get(model_name, {})
 
-        # Get caption prompts from YAML
-        caption_config = self._config.get_caption_config()
-        system_content = caption_config.get(
+        prompt_config = prompt_config or {}
+        system_content = prompt_config.get(
             "system_prompt", ""
         ).strip()
-        user_prompt = caption_config.get(
+        user_prompt = prompt_config.get(
             "user_prompt", ""
         ).strip()
 
@@ -581,3 +798,62 @@ class OpenAIGenericClient:
         request_params[str(max_tokens_key)] = max_tokens_value
 
         return request_params
+
+    def _parse_removal_response(
+        self, content: str
+    ) -> Dict[str, Any]:
+        """Parse JSON response from the model for removal metadata."""
+        parsed = self._extract_json_dict(content)
+        if not parsed:
+            return {}
+
+        return {
+            "thought": str(parsed.get("thought", "")).strip(),
+            "is_solo_p": self._clamp_probability(
+                parsed.get("is_solo_p")
+            ),
+            "is_woman_p": self._clamp_probability(
+                parsed.get("is_woman_p")
+            ),
+            "is_man_p": self._clamp_probability(
+                parsed.get("is_man_p")
+            ),
+        }
+
+    @staticmethod
+    def _clamp_probability(value: Any) -> float:
+        """Normalize probability-like values into the [0, 1] range."""
+        try:
+            prob = float(value)
+        except (TypeError, ValueError):
+            return 0.0
+
+        if prob < 0:
+            return 0.0
+        if prob > 1:
+            return 1.0
+        return prob
+
+    @staticmethod
+    def _extract_json_dict(
+        content: str,
+    ) -> Optional[Dict[str, Any]]:
+        """Extract a JSON object from free-form content."""
+        if not content:
+            return None
+        try:
+            loaded = json.loads(content)
+            return loaded if isinstance(loaded, dict) else None
+        except json.JSONDecodeError:
+            match = re.search(r"\{.*\}", content, re.DOTALL)
+            if match:
+                try:
+                    loaded = json.loads(match.group(0))
+                    return (
+                        loaded
+                        if isinstance(loaded, dict)
+                        else None
+                    )
+                except json.JSONDecodeError:
+                    return None
+        return None

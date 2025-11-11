@@ -7,7 +7,6 @@ application's YAML configuration files.
 from dataclasses import dataclass
 from typing import Any, Dict
 
-
 CONFIG_VERSION = "1.0"  # For future migrations
 
 
@@ -57,15 +56,11 @@ class ProcessingConfig:
         if self.thread_pool < 1:
             errors.append("thread_pool must be >= 1")
         if self.throttle_submission_rate <= 0:
-            errors.append(
-                "throttle_submission_rate must be > 0"
-            )
+            errors.append("throttle_submission_rate must be > 0")
         if self.throttle_retries < 0:
             errors.append("throttle_retries must be >= 0")
         if self.throttle_backoff_factor < 1:
-            errors.append(
-                "throttle_backoff_factor must be >= 1"
-            )
+            errors.append("throttle_backoff_factor must be >= 1")
         valid_levels = [
             "DEBUG",
             "INFO",
@@ -74,13 +69,13 @@ class ProcessingConfig:
             "CRITICAL",
         ]
         if self.log_level not in valid_levels:
-            errors.append(
-                f"invalid log_level: {self.log_level}"
-            )
+            errors.append(f"invalid log_level: {self.log_level}")
         return errors
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "ProcessingConfig":
+    def from_dict(
+        cls, data: Dict[str, Any]
+    ) -> "ProcessingConfig":
         """Create ProcessingConfig from dictionary."""
         return cls(
             thread_pool=data.get("thread_pool", 10),

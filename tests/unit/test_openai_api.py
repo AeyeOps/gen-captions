@@ -12,10 +12,10 @@ def test_openai_generic_client(mock_openai):
     console = Console(record=True)
     logger = MagicMock()
 
-    config._config["LLM_API_KEY"] = "test-key"
-    config._config["LLM_BASE_URL"] = "https://api.openai.com/v1"
-    # Set a sample model that's not in MODEL_CONFIG so it uses default
-    config._config["LLM_MODEL"] = "gpt-3.5-turbo"
+    config._llm_api_key = "test-key"
+    config._llm_base_url = "https://api.openai.com/v1"
+    config._llm_model = "gpt-3.5-turbo"
+    config._current_backend = "openai"
     with patch(
         "gen_captions.openai_generic_client.encode_image",
         return_value="encoded-image",

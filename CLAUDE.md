@@ -239,7 +239,7 @@ MODEL_CONFIG = {
 - **No `[trigger]` token**: Model outputs without `[trigger]` are rejected and retried up to `THROTTLE_RETRIES` times
 - **Rate limiting**: 429 errors trigger exponential backoff; adjust `THROTTLE_BACKOFF_FACTOR` and `THROTTLE_RETRIES` for your API tier
 - **Thread safety**: Use `ConcurrentRotatingFileHandler` for logging in multi-threaded contexts
-- **Binary building**: PyInstaller spec includes `VERSION` file via `force-include` in `pyproject.toml`
+- **Binary building**: PyInstaller bundle ships `pyproject.toml` so runtime version lookup (via pyproject metadata) still works
 
 ## Development Workflow
 

@@ -67,10 +67,10 @@ format:
 
 # Type check
 typecheck:
-	uv run --python 3.14 mypy gen_captions/
+	uv run --python 3.14 mypmaky gen_captions/
 	# Note: pytype does not yet support Python 3.14
 
 # Run all quality checks
-all: format lint typecheck test
+quality: format lint typecheck test
 	@echo ""
 	@echo "All checks passed!"

@@ -38,7 +38,8 @@ def get_llm_client(
         ValueError: If backend is not supported
     """
     backend = backend.lower().strip()
-    config.set_backend(backend)
+    if getattr(config, "_current_backend", None) != backend:
+        config.set_backend(backend)
 
     # Mask API key for local providers
     if backend in ("lmstudio", "ollama"):
@@ -59,7 +60,8 @@ def get_llm_client(
     # All backends use OpenAI-compatible client
     if backend in ("openai", "grok", "lmstudio", "ollama"):
         logger.info(
-            "Using OpenAI-compatible client for profile: %s", backend
+            "Using OpenAI-compatible client for profile: %s",
+            backend,
         )
         return OpenAIGenericClient(
             config=config, console=console, logger=logger

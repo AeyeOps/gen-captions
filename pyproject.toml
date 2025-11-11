@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "gen-captions"
-version = "0.5.2"
+version = "0.6.1"
 description = "Generate image captions with OpenAI, GROK, LM Studio, or Ollama"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -65,7 +65,6 @@ gen-captions = "gen_captions.cli:app"
 packages = ["gen_captions"]
 
 [tool.hatch.build.targets.wheel.force-include]
-"gen_captions/VERSION" = "gen_captions/VERSION"
 "gen_captions/default.yaml" = "gen_captions/default.yaml"
 
 [tool.black]
@@ -101,3 +100,7 @@ exclude_lines = [
     "raise NotImplementedError",
     "if __name__ == .__main__.:",
 ]
+
+[tool.flake8]
+max-line-length = 100
+extend-ignore = ["E203"]

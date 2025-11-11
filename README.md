@@ -110,6 +110,7 @@ The first run copies the bundled `default.yaml` into `~/.config/gen-captions/`.
 uv run gen-captions --help
 uv run gen-captions version
 uv run gen-captions generate --image-dir ./images --caption-dir ./captions --model-profile openai
+uv run gen-captions remove --image-dir ./images --model-profile openai --keep-gender women --keep-solo yes
 uv run gen-captions fix-encoding --caption-dir ./captions --config-dir ~/.config/gen-captions
 uv run gen-captions dedupe --image-dir ./images [--yolo]
 uv run gen-captions config --help
@@ -122,6 +123,24 @@ uv run gen-captions config --help
 - Cloud providers require API keys; local providers run against the configured base URL and require no key.
 - Uses a thread pool (`processing.thread_pool`) with submission throttling. Retries API calls until `[trigger]` appears or retries are exhausted.
 - Captions are saved beside the dataset with one `.txt` per image.
+
+### Remove Mismatched Images
+
+```bash
+uv run gen-captions remove \
+  --image-dir ./images \
+  --model-profile openai \
+  --keep-gender women \
+  --keep-solo yes
+```
+
+- Uses the same backend profiles as `generate` (OpenAI, GROK, LM Studio, Ollama).
+- Each analyzed file prints a structured JSON payload with thought + probability scores for solo/men/women.
+- Pass at least one filter flag (`--keep-gender` and/or `--keep-solo`).
+- Use `--keep-gender women|men` to KEEP only that gender and move the rest to `removed/`.
+- `--keep-solo yes|true|1` keeps single-subject shots (removes groups); `--keep-solo no|false|0` keeps group scenes. Leave it off to ignore solo status.
+- Captions stored next to their images move automatically into `<image-dir>/removed`, and every decision (probabilities, reasons, action) is logged to `gen_captions.log` alongside the JSON console output.
+- Thresholds (default `0.9`) are configurable under the `removal.thresholds` section in the YAML config.
 
 ### Deduplicate Dataset
 
@@ -188,7 +207,7 @@ backends:
     model: grok-2-vision-1212
     base_url: https://api.x.ai/v1
   lmstudio:
-    model: qwen/qwen3-vl-8b
+    model: qwen/qwen2.5-vl-7b
     base_url: http://localhost:1234/v1
   ollama:
     model: qwen2.5vl:7b
@@ -317,7 +336,6 @@ gen-captions/
 │   ├── quality_scorer.py
 │   ├── system_info.py
 │   ├── utils.py
-│   ├── VERSION
 │   └── default.yaml
 ├── tests/
 │   ├── unit/
@@ -332,6 +350,8 @@ gen-captions/
 ```
 
 Runtime configuration lives in `~/.config/gen-captions/`, and logs default to `gen_captions.log` in the working directory.
+
+Version metadata is resolved directly from `pyproject.toml`, eliminating the old `VERSION` file duplication.
 
 ## Contributing
 

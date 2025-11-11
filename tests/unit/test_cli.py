@@ -1,6 +1,8 @@
+import pytest
+import typer
 from typer.testing import CliRunner
 
-from gen_captions.cli import app
+from gen_captions.cli import _parse_solo_flag, app
 
 runner = CliRunner()
 
@@ -32,3 +34,13 @@ def test_cli_version():
     result = runner.invoke(app, ["version"])
     assert result.exit_code == 0
     assert "Caption Generator v" in result.output
+
+
+def test_parse_solo_flag_variants():
+    assert _parse_solo_flag("yes") is True
+    assert _parse_solo_flag("1") is True
+    assert _parse_solo_flag("no") is False
+    assert _parse_solo_flag("0") is False
+
+    with pytest.raises(typer.BadParameter):
+        _parse_solo_flag("maybe")

@@ -5,10 +5,11 @@ configurations for the application.
 """
 
 import os
+import shutil
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-import yaml
+import yaml  # type: ignore[import-untyped]
 from rich.console import Console
 
 from .config_schema import CONFIG_VERSION, ProcessingConfig
@@ -18,7 +19,9 @@ class ConfigManager:
     """Manages loading, merging, and saving YAML configs."""
 
     # Only use local.yaml in user config directory
-    LOCAL_CONFIG_PATH = Path.home() / ".config" / "gen-captions" / "local.yaml"
+    LOCAL_CONFIG_PATH = (
+        Path.home() / ".config" / "gen-captions" / "local.yaml"
+    )
 
     def __init__(self, console: Optional[Console] = None):
         """Initialize configuration manager."""
@@ -30,46 +33,47 @@ class ConfigManager:
     def get_default_config_path(self) -> Path:
         """Return path to bundled default.yaml."""
         # Use path in user config directory
-        return Path.home() / ".config" / "gen-captions" / "default.yaml"
+        return (
+            Path.home()
+            / ".config"
+            / "gen-captions"
+            / "default.yaml"
+        )
 
     def load_default_config(self) -> Dict[str, Any]:
-        """Load bundled default configuration."""
+        """Load default configuration, copying the bundled template if needed."""
         if self._default_config is not None:
             return self._default_config
 
         config_path = self.get_default_config_path()
-
-        # Ensure config directory exists
         config_path.parent.mkdir(parents=True, exist_ok=True)
 
-        try:
-            with open(
-                config_path, "r", encoding="utf-8"
-            ) as f:
-                self._default_config = yaml.safe_load(f)
-            return self._default_config
-        except FileNotFoundError:
-            # Copy from bundled default if not exists
-            bundled_default = Path(__file__).parent / "default.yaml"
-            if bundled_default.exists():
-                import shutil
-                shutil.copy(bundled_default, config_path)
-                with open(config_path, "r", encoding="utf-8") as f:
-                    self._default_config = yaml.safe_load(f)
-                return self._default_config
-            else:
-                self.console.print(
-                    f"[bold red]Error:[/] Default config not "
-                    f"found: {config_path}"
-                )
-                # Return minimal fallback
-                return self._get_fallback_config()
-        except yaml.YAMLError as e:
-            self.console.print(
-                f"[bold red]Error parsing default "
-                f"config:[/] {e}"
+        bundled_default = Path(__file__).parent / "default.yaml"
+        if not bundled_default.exists():
+            raise FileNotFoundError(
+                f"Bundled default config missing at {bundled_default}"
             )
-            return self._get_fallback_config()
+
+        def _read(path: Path) -> Dict[str, Any]:
+            with path.open("r", encoding="utf-8") as handle:
+                return yaml.safe_load(handle) or {}
+
+        if not config_path.exists():
+            shutil.copy(bundled_default, config_path)
+        else:
+            try:
+                _read(config_path)
+            except yaml.YAMLError:
+                shutil.copy(bundled_default, config_path)
+
+        data = _read(config_path)
+        if not isinstance(data, dict):
+            raise ValueError(
+                f"Configuration file {config_path} must contain a mapping"
+            )
+
+        self._default_config = data
+        return data
 
     def find_local_config(self) -> Optional[Path]:
         """Find local config file using search paths."""
@@ -100,18 +104,13 @@ class ConfigManager:
             return {}
 
         try:
-            with open(
-                config_path, "r", encoding="utf-8"
-            ) as f:
+            with open(config_path, "r", encoding="utf-8") as f:
                 self._local_config = yaml.safe_load(f) or {}
             return self._local_config
         except yaml.YAMLError as e:
             self.console.print(
                 f"[bold red]Error parsing local "
                 f"config:[/] {e}"
-            )
-            self.console.print(
-                "[yellow]Falling back to default config[/]"
             )
             return {}
 
@@ -155,9 +154,7 @@ class ConfigManager:
         errors = []
 
         # Check version compatibility
-        config_version = config.get(
-            "config_version", "unknown"
-        )
+        config_version = config.get("config_version", "unknown")
         if config_version != CONFIG_VERSION:
             errors.append(
                 f"Config version mismatch: got "
@@ -172,9 +169,7 @@ class ConfigManager:
                 )
                 errors.extend(proc_config.validate())
             except (TypeError, KeyError) as e:
-                errors.append(
-                    f"Invalid processing config: {e}"
-                )
+                errors.append(f"Invalid processing config: {e}")
         else:
             errors.append("Missing 'processing' section")
 
@@ -186,9 +181,7 @@ class ConfigManager:
             if not isinstance(backends, dict):
                 errors.append("'backends' must be a dict")
             elif len(backends) == 0:
-                errors.append(
-                    "'backends' section is empty"
-                )
+                errors.append("'backends' section is empty")
 
         return errors
 
@@ -243,39 +236,7 @@ config_version: "1.0"
 #     model: grok-2-vision-1212
 """
 
-    def _get_fallback_config(self) -> Dict[str, Any]:
-        """Return minimal hardcoded fallback config."""
-        return {
-            "config_version": CONFIG_VERSION,
-            "processing": {
-                "thread_pool": 10,
-                "throttle_submission_rate": 1.0,
-                "throttle_retries": 10,
-                "throttle_backoff_factor": 2.0,
-                "log_level": "INFO",
-            },
-            "backends": {
-                "openai": {
-                    "model": "gpt-5-mini",
-                    "base_url": "https://api.openai.com/v1",
-                },
-                "grok": {
-                    "model": "grok-2-vision-1212",
-                    "base_url": "https://api.x.ai/v1",
-                },
-            },
-            "caption": {
-                "required_token": "[trigger]",
-                "system_prompt": (
-                    "You are an expert at generating "
-                    "detailed and accurate stability "
-                    "diffusion type prompts."
-                ),
-                "user_prompt": (
-                    "Describe the content of this image..."
-                ),
-            },
-        }
+    # Removed fallback config: users must manage ~/.config/gen-captions files
 
     def set_config_value(
         self, key_path: str, value: Any
