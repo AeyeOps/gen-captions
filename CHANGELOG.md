@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2025-11-12
+
+### Fixed
+
+* **Config bootstrap restored** – `ConfigManager.load_default_config()` now auto-copies the bundled `gen_captions/default.yaml` into `~/.config/gen-captions/` when the file is missing or invalid, so fresh installs always have a working baseline.
+* **CLI no longer dies on import** – `gen_captions/cli.py` lazily instantiates `Config`/loggers via `ensure_config()`, allowing `gen-captions config init` and other commands to run even before any config files exist.
+* **Removal telemetry cleanup** – console output now focuses on queued counts + single-line decisions, while logs capture the detailed metadata; the noisy per-image "Analyzing removal filters" spam is gone.
+
+### Changed
+
+* Removal flags use explicit `--keep-gender` / `--keep-solo` semantics only, preventing accidental inverted filters; README/help text updated accordingly.
+* Strict JSON-only removal prompts moved into both bundled and user default configs so new environments inherit the same guardrails as the CLI override.
+
+### Testing
+
+* ✅ `uv run pytest tests/unit/test_config.py tests/unit/test_config_manager.py tests/unit/test_removal_processor.py`
+
 ## [0.6.0] - 2025-11-11
 
 ### Added

@@ -2,7 +2,7 @@
 
 Generate detailed captions for image datasets using OpenAI-compatible vision models with rich logging, configurable pipelines, and dataset hygiene utilities.
 
-**Version:** 0.5.2
+**Version:** 0.6.1
 **Python:** 3.14+
 **License:** MIT
 
@@ -177,7 +177,7 @@ Scans `.txt`, `.yml`, and `.yaml` files, attempts multiple legacy encodings, and
 
 ### Diagnostics & Logging
 
-- `gen-captions version` prints the currently installed version (0.5.2).
+- `gen-captions version` prints the currently installed version (0.6.1).
 - Each command logs to `gen_captions.log` with timestamped, thread-aware entries and mirrors key events to the Rich console.
 - `system_info` output (platform, Python, `GETCAP_*` env overrides) prints automatically at the start of long-running commands.
 
